@@ -10,4 +10,11 @@ format: html
 
 ```{r}
 #| message: false
+library("car")
+some(Prestige)
+Prestige[sample(nrow(Prestige), 10),]
+boxplot(Prestige$income)
+summary(Prestige$income)
 ```
+
+
