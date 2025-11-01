@@ -11,10 +11,38 @@ format: html
 ```{r}
 #| message: false
 library("car")
-some(Prestige)
 Prestige[sample(nrow(Prestige), 10),]
-boxplot(Prestige$income)
-summary(Prestige$income)
+```
+* Histogram: default bins vs *Freedman & Diaconis(1981)* method
+
+```{r}
+hist(Prestige$income)
+hist(Prestige$income, breaks = "FD" )
+box()
+```
+* printing all parameters of a function
+
+```{r}
+args("plot.default")
+```
+* `stem.leaf()` function in `aplpack` package for pretty-printed histograms
+
+```{r}
+library("aplpack")
+sl <- stem.leaf(Prestige$income)
+stem(Prestige$income)
+```
+* density estimation with the `density()` function
+
+density estimate is overlayed on a *density histogram*. In a density histogram, 
+bin size is kept variable so that the area of a column is the probability of the bin
+We plot this using `freq=F`
+```{r}
+hist(Prestige$income, freq=F, breaks="FD")
+rug(Prestige$income)
+lines(density(Prestige$income, from=0), lwd=2, lty="dashed")
+legend("topright", legend="density", lty = "dashed", lwd = 2, inset=0.02)
+box()
 ```
 
 
