@@ -1,0 +1,13 @@
+---
+title: R companion to applied reg, ch3 - Exploring and Transforming data
+Date: 2025/10/26
+format: html
+---
+* Plotting needed at 3 stages:
+  - EDA (term courtesy of Tukey in 1977): To get a general idea of the outliers, odd and interesting features.
+  - checking model fit
+  - presenting model to others
+
+```{r}
+#| message: false
+```

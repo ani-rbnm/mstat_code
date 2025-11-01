@@ -1,0 +1,55 @@
+---
+title: R companion to applied reg, ch1
+Date: 2025/10/26
+format: html
+---
+
+
+```{r}
+library(car)
+head(Duncan, n=10)
+dim(Duncan)
+```
+* Info about the dataset
+
+```{r}
+class(Duncan$type)
+str(Duncan)
+summary(Duncan)
+```
+* Some visual analysis
+
+```{r}
+hist(Duncan$prestige)
+scatterplotMatrix(~ prestige + education + income, data = Duncan)
+```
+Note the **bimodal** distribution of the prestige and education (diagonal panels). This is 
+not unexpected from percentage fields, especially if the underlying process generates
+discrete values and the derived value (percentage in this case) is bounded. 
+
+#### Regression Analysis
+
+
+```{r}
+duncan.model <- lm(formula = prestige ~ education + income, data = Duncan)
+summary(duncan.model)
+summary(Duncan$prestige)
+mean(Duncan$prestige)
+```
+The 3 stars `***` indicate that both education and income are **significant at levels >=0.001** which is to say that the test 
+$H_0: \beta_{education} = 0$ and $H_0: \beta_{income} = 0$ can both be rejected at levels >=0.001
+
+* the residuals have a normal distribution with $\mu = 0$ so it can be "studentised"
+
+```{r}
+densityPlot( rstudent(duncan.model) )
+```
+`rstudent()` function studentises the residuals and `densityPlot()` plots them. If the data indeed
+fits the model, we should have the t-distribution pdf plotted.
+
+
+```{r}
+qqPlot(duncan.model, id = list(n=3))
+```
+This is a special `qqPlot()` function from the `cars` package that uses the t-distribution not the 
+regular normal distribution.

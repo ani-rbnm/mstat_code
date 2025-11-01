@@ -1,0 +1,293 @@
+---
+title: R companion to applied reg, ch2
+Date: 2025/10/26
+format: html
+---
+
+* loading a data frame from a package without first loading the package as long as 
+the package is installed
+
+```{r}
+data("Challeng", package = "alr4")
+head(Challeng)
+dim(Challeng)
+```
+
+* Reading txt file
+
+```{r}
+duncan.t.df <- read.table(file = "Duncan.txt", header=T)
+head(duncan.t.df)
+```
+* Reading csv file
+
+
+```{r}
+duncan.cs.df <- read.csv(file="Duncan.csv", header = T)
+head(duncan.cs.df)
+```
+* saving file
+
+
+```{r}
+duncan.cs.df$bonus <- duncan.cs.df$income*0.1
+head(duncan.cs.df)
+write.table(x = duncan.cs.df, file = "Duncan_updated.txt")
+write.csv(duncan.cs.df , file = "Duncan_updated.csv")
+```
+`write.csv()` has a quirk that it writes `""` at the beginning of the first line where the col names are mentioned.
+
+* reading back the csv file with `""` written in the first line
+
+```{r}
+duncan.cs.df1 <- read.csv("Duncan_updated.csv", stringsAsFactors = T, header=T, row.names = 1)
+head(duncan.cs.df1)
+class(duncan.cs.df1)
+str(duncan.cs.df1)
+```
+note `row.names = 1`. Without it, the row names would be interpreted as a column
+
+* using `tidyverse` to load *tibble*
+```{r}
+library(tidyverse)
+duncan.tbl <- read_csv("Duncan_updated.csv")
+head(duncan.tbl)
+class(duncan.tbl)
+```
+* converting from tibble to data frame
+
+```{r}
+duncan.df.2 <- as.data.frame(duncan.tbl)
+head(duncan.df.2)
+class(duncan.df.2)
+str(duncan.df.2)
+```
+* converting from df to tibble
+
+```{r}
+duncan.tbl1 <- as_tibble(duncan.df.2)
+head(duncan.tbl1, n=10)
+dim(duncan.tbl1)
+```
+* converting to a tibble directly from a data frame. It should retain the factor type for the 
+character field and also retain the row names
+
+```{r}
+head(duncan.cs.df1)
+str(duncan.cs.df1)
+duncan.tbl2 <- as_tibble(duncan.cs.df1)
+head(duncan.tbl2)
+```
+#### Tibble vs Data frame
+- Tibbles are antagonistic to row names by design
+- It doesn't treat string names by factor
+- When tibble created through `as_tibble()`, factor types are retains while row names are lost.
+
+### Working with data frames
+
+* using `with()` or `attach()` places the object concerned in the second position after `.GlobalEnv` .
+This is done by the `library()` statement as well. 
+
+* search path to look for identifiers. Gives the sequence in which variables will be searched.
+
+```{r}
+search()
+```
+
+#### Handling missing data
+
+* a quick demonstration of `complete.cases()` - Return complete cases only as per the columns supplied
+
+```{r}
+a <- c("a", "b", NA, "c", "d")
+b <- c(10, NA, 30, 40, 60)
+c <- c(110, NA, 112, NA, 60)
+sample.df <- data.frame(a,b,c, stringsAsFactors = F)
+good <- complete.cases(sample.df$b, sample.df$c)
+sample.df[good,]
+```
+* Following will list rows with complete cases in all of the columns
+
+```{r}
+good <- complete.cases(sample.df)
+sample.df[good,]
+```
+$Note$: Usually, `complete.cases()` on the entire data frame is not a good idea, since missing values in columns
+that are not used could lead to unnecessary loss of data
+
+```{r}
+library(car)
+head(Freedman, n=10)
+```
+* `md.pattern()` function of ***mice*** package to count of free
+
+```{r}
+library(mice)
+md.pattern(x = Freedman, plot=F)
+```
+* `na.action` attribute: Most statistical modeling functions have a `na.action` attribute which dictates what to do 
+with NA values. We can get and set the default values as follows:
+
+```{r}
+getOption("na.action")
+options(na.action="na.exclude")
+```
+functions such as `median()` or `mean()` don't have it. They instead have the `na.rm` option
+
+```{r}
+median(Freedman$density)
+median(Freedman$density, na.rm=T)
+```
+* scatterplots silently ignore missing values
+
+```{r}
+plot(Freedman$density, Freedman$crime, main="(a)", xlab = "Density", ylab = "Crime")
+showLabels(Freedman$density, Freedman$crime, labels=rownames(Freedman), n=5, method="x")
+```
+The above is positively skewed, so plotting on the log scale and fitting OLS and lowess lines. 
+NA values are silently discarded by `lm()` and the `plot()` functions, but `lowess()` can't handle them.
+Hence, we need to filter NA values out using `good` below
+```{r}
+Freedman$logDensity <- log(Freedman$density, base=10)
+good <- complete.cases(Freedman$density, Freedman$crime)
+
+plot(Freedman$logDensity, Freedman$crime, main="(b)", xlab = "Density", ylab= "Crime")
+model <- lm(crime ~ logDensity, data = Freedman)
+abline(model, lty="dashed", lwd=2)
+lines(lowess(Freedman$logDensity[good], Freedman$crime[good], f=1.0), lty="solid")
+
+legend("topright", legend = c("OLS", "lowess"), lty = c("dashed", "solid"), lwd = 2, inset=0.02)
+
+```
+
+* Two ways to remove rows that have at least one NA, the former keeps a record of the rows dropped, reinstating them
+back with an `NA` value after the required operation has been performed.
+
+```{r}
+Freedman.good <- na.exclude(Freedman)
+dim(Freedman.good)
+head(Freedman.good)
+attr(Freedman.good, "na.action")
+```
+or
+
+```{r}
+Freedman.good2 <- Freedman[complete.cases(Freedman),]
+dim(Freedman.good2)
+head(Freedman.good2)
+```
+*use the former, since we may need to join the result with the original data.frame, something we can't do
+if rows are dropped*
+
+### Transforming Data frames
+
+* Creating bins out of a continuous variable using `cut()`
+
+Ex. 1:
+
+```{r}
+head(Guyer)
+Guyer$perc.coop <- 100/120 * Guyer$cooperation
+head(Guyer)
+Guyer$coop.4 <- cut(Guyer$perc.coop, breaks = 4)
+head(Guyer)
+summary(Guyer$coop.4)
+
+```
+Ex. 2:
+
+```{r}
+q <- 
+Guyer$coop.4 <- NULL
+Guyer$coop.5 <- cut(Guyer$perc.coop, quantile(Guyer$perc.coop, c(0, 1/3, 2/3, 1)), labels = c("high", "med", "low"),
+include.lowest=T)
+head(Guyer)
+summary(Guyer$coop.5)
+quantile(Guyer$perc.coop, c(0, 1/3, 2/3, 1))
+```
+
+* Using `ifelse()`
+
+```{r}
+str(Womenlf)
+head(Womenlf)
+summary(Womenlf$partic)
+nrow(Womenlf)
+Womenlf$working.alt.2 <- ifelse(Womenlf$partic %in% c("fulltime", "parttime"), "yes", "no")
+```
+#### reshaping columns to switch between long and wide shapes
+
+
+```{r}
+head(OBrienKaiser, n = 2)
+nrow(OBrienKaiser)
+str(OBrienKaiser)
+```
+* wide to long
+
+```{r}
+OBK.L <- reshape(OBrienKaiser, direction = "long", varying = 3:length(names(OBrienKaiser)), v.names="res", idvar = "sub")
+OBK.L <- OBK.L[ order(OBK.L$sub, OBK.L$time), ]
+head(OBK.L, n = 15)
+head(OBrienKaiser, n = 2)
+```
+* converting back to wide from long
+
+```{r}
+OBK.W <- reshape(OBK.L, 
+  direction = "wide", 
+  varying = paste0( rep(c("pre", "post", "fup"), each=5) ,".", rep(1:5, 3)), 
+  v.names="res", idvar="sub"
+)
+head(OBK.W)
+```
+#### using `lubridate` to format dates
+
+
+```{r}
+#| message: false
+library(tidyverse)
+dates <- data.frame(first = mdy(c("10/24/1981", "11/04/1990", "4/30/2020")),
+    second = dmy(c("4-11-2022", "04-4-20", "31-03-90"))
+)
+str(dates)
+dates$years_in_between <- dates$second - dates$first
+head(dates)
+```
+* create a contingency table based on problem and type from a data frame
+
+```{r}
+head(MplsStops$date)
+MplsStops$wkday <- factor( weekdays(MplsStops$date , abbreviate= T) , levels = c("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"))
+levels(MplsStops$problem)
+head(MplsStops[,c("problem", "wkday")], n = 10)
+
+tab1 <- xtabs(~ problem + wkday, data=MplsStops)
+```
+* using `prop.table` to get percentages along an axis of a contingency table, `row == 1` and `col == 2`
+
+
+```{r}
+round( prop.table(tab1, margin=1) , 3) * 100
+```
+
+ * Example: creating contingency table to check of there are more suspicious stops at night
+
+
+```{r}
+ MplsStops$daynight <- factor(
+     ifelse(hour(MplsStops$date) >= 18 | hour(MplsStops$date) < 6, "night", "day")
+ )
+ daynight <- xtabs(~problem + daynight, data=MplsStops)
+ round(prop.table(daynight, margin=1), 3) * 100
+
+```
+Therefore, we can conclude that more traffic stops happen at night both for suspicious and traffic offences.
+
+#### Performance
+
+* total elapsed time
+
+```{r}
+system.time(X <- rnorm(n = 1e6*100))
+```
