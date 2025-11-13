@@ -1,0 +1,79 @@
+
+---
+title: R companion to applied reg, ch4 - Fitting linear models
+Date: 2025/10/26
+format: html
+---
+```{r}
+library(car)
+```
+* Dataset `Davis`
+
+```{r}
+summary(Davis)
+
+```
+* Regressing and checking tests performed
+
+
+```{r}
+davis.model <- lm(weight ~ repwt, data = Davis)
+summary(davis.model)
+```
+* getting 5% confidence intervals of the estimated coeffs
+
+
+```{r}
+confint(davis.model)
+```
+
+
+```{r}
+head(Prestige)
+mean(Prestige$women)
+str(Transact)
+sapply(Transact, sd)
+apply(Transact, MARGIN= 2, sd)
+```
+
+* `SLID` dataset
+
+
+```{r}
+
+summary(SLID)
+```
+
+* The `Baumann` dataset
+
+
+```{r}
+summary(Baumann)
+head(Baumann$post.test.3)
+```
+
+```{r}
+head(Baumann[, c(1,6)])
+xtabs(~group, data=Baumann)
+round( tapply(Baumann$post.test.3, Baumann$group, mean) , 3)
+round( tapply(Baumann$post.test.3, Baumann$group, sd) , 3)
+head( model.matrix(~ Baumann$group) )
+contrasts(Baumann$group)
+```
+
+* One-way Anova
+
+
+```{r}
+baum.mod.1 <- lm(post.test.3 ~ group, data = Baumann)
+summary(baum.mod.1)
+round( tapply(Baumann$post.test.3, Baumann$group, mean) , 3)
+```
+
+* `GSSVocab` dataset
+
+```{r}
+summary(GSSvocab)
+head(GSSvocab)
+str(GSSvocab)
+```
