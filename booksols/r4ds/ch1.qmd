@@ -1,0 +1,141 @@
+---
+title: R 4 DS, ch1, Plotting using ggplot
+format: html
+---
+
+
+```{r}
+library(tidyverse)
+library(palmerpenguins)
+library(ggthemes)
+```
+
+* Initial exploration of the penguin tibble
+`glimpse()` function like `str()` 
+
+```{r}
+head(penguins)
+glimpse(penguins)
+str(penguins)
+```
+* Answering questions:
+ - relationship between bodymass and flipper length
+ - is this relationship different for different types
+ - linear or not?
+
+
+```{r}
+penguins |> ggplot(
+  mapping = aes(x = flipper_length_mm, y = body_mass_g, color = species)
+) + 
+  geom_point() + 
+  geom_smooth(method = "lm") 
+```
+* changing the above to making a single fitting line as opposed to one for each type
+  - `color` at a local geom_point level
+
+
+```{r}
+
+penguinplot <- penguins |> ggplot(
+  mapping = aes(x = flipper_length_mm, y = body_mass_g)
+) + 
+  geom_point(
+    mapping = aes(color = species, shape = `species`)
+  ) + 
+  geom_smooth(method = "lm") 
+
+penguinplot
+```
+* adding labels as a new layer
+
+```{r}
+penguinplot + 
+  labs(
+    title = "Body mass and flipper length",
+    subtitle = "Dimensions for Adelie, Chinsstrap, and Gentoo penguins",
+    x = "Flipper length (mm)",
+    y = "Body mass (g)",
+    color = "Species",
+    shape = "Species"
+  )
+penguinplot
+```
+* scaling color to safe for color blindness
+
+
+```{r}
+penguinplot +
+  scale_color_colorblind()
+```
+* Some more info about penguins dataset
+
+
+```{r}
+penguins |> nrow()
+ggplot(
+  data = penguins,
+  mapping = aes(
+    x = bill_length_mm, y = bill_depth_mm
+  )
+) + 
+  geom_point(
+    mapping = aes(
+      color = species,
+      shape = species
+    )
+  ) +
+  labs(
+    title = "Bill depth vs bill length",
+    subtitle = "subtitle",
+    x = "Bill length(mm)",
+    y = "Bill depth(mm)"
+  ) +
+  scale_color_colorblind()
+```
+
+* species versus bill_depth
+
+
+```{r}
+
+ggplot(
+  data = penguins,
+  mapping = aes(
+    y  = species,
+    x = bill_depth_mm
+  )
+) +
+  geom_point(na.rm = T) +
+  labs(
+    caption = "This is a sample caption"    
+  )
+
+```
+* concise plot
+
+```{r}
+penguins |>
+  ggplot(aes(x = flipper_length_mm, y = body_mass_g)) +
+  geom_point()
+```
+* distribution of the categorical variable: `species`
+
+
+```{r}
+
+penguins |>
+  ggplot(aes(x = fct_infreq( species ))) + 
+  geom_bar()
+```
+* creating histogram by first creating 200 bins from a continuous value
+
+```{r}
+penguins |>
+  ggplot(aes(x = body_mass_g)) +
+  geom_histogram(binwidth = 200)
+```
+
+
+
+
