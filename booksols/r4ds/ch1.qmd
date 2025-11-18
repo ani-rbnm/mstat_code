@@ -50,7 +50,7 @@ penguinplot
 * adding labels as a new layer
 
 ```{r}
-penguinplot + 
+penguinplot <- penguinplot + 
   labs(
     title = "Body mass and flipper length",
     subtitle = "Dimensions for Adelie, Chinsstrap, and Gentoo penguins",
