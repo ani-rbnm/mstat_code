@@ -108,7 +108,7 @@ ggplot(
 ) +
   geom_point(na.rm = T) +
   labs(
-    caption = "This is a sample caption"    
+    caption = "This is a sample caption" 
   )
 
 ```
@@ -117,7 +117,9 @@ ggplot(
 ```{r}
 penguins |>
   ggplot(aes(x = flipper_length_mm, y = body_mass_g)) +
-  geom_point()
+  geom_point(na.rm = T) +
+  geom_smooth(method = "lm") +
+  scale_color_colorblind()
 ```
 * distribution of the categorical variable: `species`
 
@@ -136,6 +138,63 @@ penguins |>
   geom_histogram(binwidth = 200)
 ```
 
+* creating density plot
+
+```{r}
+penguins |>
+  ggplot(aes(x = body_mass_g)) +
+  geom_density() +
+  labs(
+    x = "Body mass (g)",
+    y = "density",
+    title = "Density plot for body mass"
+  )
+
+```
+* creating box plots
 
 
+```{r}
+penguins |>
+  ggplot(aes(y = body_mass_g, group = species)) + 
+  geom_boxplot()
+```
+* creating density_plot using `group`. `group` is used don't want color to group.
+
+```{r}
+penguins |>
+  ggplot(aes(x = body_mass_g)) +
+  geom_density(aes(color = species), linewidth = 0.7)
+```
+
+* adding `color` and `fill` aesthetics
+ - Note that we only use `aes()` to **map** if we have a variable. For a fixed value, we set it as a 
+    parameter directly
+
+```{r}
+penguins |>
+  # ggplot(aes(x = body_mass_g, fill = species, color = species)) +
+  ggplot(aes(x = body_mass_g)) +
+  geom_density(fill = "skyblue", color = "skyblue", 
+    alpha = 0.6)
+```
+
+* bar plot with 2 categorical variables with percentages for comparison
+
+
+```{r}
+penguins |>
+  ggplot(aes(x = island, fill = species)) +
+  geom_bar(position = "fill")
+```
+* using `facet_wrap` for each category
+  - use the same field for both shape and color of the points
+  - use `facet_wrap()` for other categories
+
+```{r}
+penguins |>
+  ggplot(aes(x = flipper_length_mm, y = body_mass_g)) +
+  geom_point(aes(shape = species, color = species)) +
+  facet_wrap(~ island)
+```
 

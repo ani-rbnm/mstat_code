@@ -1,0 +1,179 @@
+---
+title: R 4 DS, ch3, Data Transformation
+format: html
+---
+
+
+```{r}
+#| message: false
+library(tidyverse)
+library(nycflights13)
+```
+* getting a highlight of the tibble `flights`
+
+
+```{r}
+glimpse(flights)
+```
+### Four types of `dplyr` verbs
+
+#### A. Row
+
+* Some key functions
+  - `filter()`
+  - `distinct()`
+  - `arrange()`
+
+* combining with `|` and `&`. 
+How many flights departed on 1st Jan?
+
+```{r}
+flights |>
+  filter(day == 1 & month == 1) 
+```
+* adding multiple conditions in `filter`: Use `%in%`
+
+
+```{r}
+val <- 
+  flights |>
+  filter(month %in% c(1,2)) |>
+  arrange(desc(arr_time))
+```
+Latest arrival time when a flight departed in January or February is: `r val$arr_time[1]` 
+
+* using `arrange` for each group
+Q: For the month of January, order by days and for each day order by departure delay in descending order
+
+```{r}
+flights |>
+  filter(month == 1) |>
+  group_by(day) |>
+  arrange(day, desc(dep_delay), .by_group = TRUE)
+```
+* `count()` function for count distinct like behaviour
+Q. how many rows in each (origin, dest) combination
+
+```{r}
+flights |>
+  count(origin, dest, sort = T)
+```
+`sort` option sorts the data as well
+
+
+##### Exercises
+
+1. flights meeting condition
+a) arrival delay >= 2
+
+
+```{r}
+flights |>
+  filter(arr_delay >= 200)
+```
+a) flew to houston
+
+```{r}
+flights |>
+  filter(tolower(dest) %in% c("iah", "hou")) |>
+  select(dest)
+```
+2. Sort flights for longest departure delay
+
+
+```{r}
+flights |>
+  arrange(desc(dep_delay))
+flights |>
+  arrange(dep_time)
+```
+
+3. Sort to find fastest flights
+
+
+```{r}
+
+flights |>
+  arrange(arr_time - dep_time)
+```
+
+4. Was there a flight every day of 2013
+
+```{r}
+
+flights |>
+  distinct(month,day) |> nrow()
+```
+
+#### B. Columns
+
+* `mutate()` function
+  - `.keep` option with the special value `used` : means only those used in 
+    mutate function are retained
+  - can use the new fields defined in the same mutate call before the current item.
+
+
+```{r}
+flights |>
+  mutate(
+    gain = dep_delay - arr_delay,
+    hours = air_time / 60,
+    gain_per_hour = gain / hours, # using fields defined in the previous 2 lines
+    .keep = "used"
+  )
+```
+
+* using `select()` to select every column other than mentioned
+
+```{r}
+flights |>
+select(!year:day) |>
+  head()
+```
+* selecting where the datatype is a character
+
+```{r}
+flights |>
+  select(where(is.integer))
+```
+* select type that satisfies the given **regex**
+
+```{r}
+flights |>
+  select(matches("^[yd].*"))
+```
+##### Exercises
+
+2. selecting `dep_time`,`dep_delay`, `arr_time`, `arr_delay`
+
+
+```{r}
+flights |>
+  select(matches("^(dep|arr).(time|delay)"))
+```
+3. Same variables multiple times in select
+
+
+```{r}
+
+flights |>
+  select(dep_time, dep_time)
+```
+returns only once.
+
+4. what does `any_of()` function do?
+
+
+```{r}
+variables <- c("year", "month", "day", "dep_delay", "arr_delay")
+flights |>
+  select(any_of(variables))
+```
+5. rename and relocate air_time and move it to the beginning
+
+
+```{r}
+flights |>
+  select(air_time = "air_time_min")
+```
+
