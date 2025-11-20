@@ -1,0 +1,44 @@
+---
+title: R 4 DS, ch19, Joins
+format: html
+---
+
+* initialisation
+
+
+```{r}
+#| message: false
+library(tidyverse)
+library(nycflights13)
+```
+
+* checking primary key
+
+
+```{r}
+dups <-
+  planes |>
+    count(tailnum) |>
+    filter(n > 1) |>
+    nrow()
+    
+dups
+```
+no. of rows with > 1: `r dups[1]`
+
+* get carrier name for a flight
+
+
+```{r}
+airports
+```
+```{r}
+flts <-
+flights |>
+  select(year, time_hour, origin, dest, tailnum, carrier)
+
+flts |>
+  left_join(airports |>
+    select(faa, lat, lon, name),
+    join_by(origin == faa))
+```

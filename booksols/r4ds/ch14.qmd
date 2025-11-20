@@ -1,0 +1,35 @@
+---
+title: R 4 DS, ch14, Strings
+format: html
+---
+
+* prerequisites
+```{r}
+#| message: false
+library(tidyverse)
+library(babynames)
+```
+
+* creating a new string column with values from another 
+
+```{r}
+df <- tibble(name = c("Flora", "David", "Terra", NA))
+new.df <-
+  df |>
+  mutate(cleaned_name = case_when(
+    is.na(name) ~ "Jane",
+    TRUE ~ name
+  ),
+cleaned_name1 = coalesce(name, "Doe"),  # coalesce() and the previous case_when block do the same thing.
+  greeting = str_c("Hi ", cleaned_name, "!"),
+  ) 
+new.df$name <- NULL
+new.df
+```
+* getting string length
+
+
+```{r}
+babynames |>
+  count(length = str_length(name), wt = n, sort = T)
+```

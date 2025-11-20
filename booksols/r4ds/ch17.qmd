@@ -1,0 +1,54 @@
+---
+title: R 4 DS, ch17, Date and Time
+format: html
+---
+
+* initialisation
+
+
+```{r}
+#| message: false
+library(tidyverse)
+library(nycflights13)
+```
+* use of `n_distinct()`
+```{r}
+df <- tribble(
+~id, ~year,
+  "A", 2021,
+  "A", 2021,
+  "A", 2023,
+  "B", 2021,
+  "B", 2022,
+  "B", 2023,
+  "B", 2022
+)
+df |>
+  group_by(id) |>
+  summarize(count = n_distinct(year))
+```
+* creating date time column
+
+```{r}
+flights |>
+  select(year,month, day, hour, minute) |>
+  mutate(departure = make_datetime(year, month, day, hour, minute))
+```
+
+* creating date time using a value from the 4 digit values recorded for dep_time, arr_time etc
+
+
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+flights |>
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time),
+    arr_time = make_datetime_100(year, month, day, arr_time),
+    sched_dep_time = make_datetime_100(year, month, day, sched_dep_time),
+    sched_arr_time = make_datetime_100(year, month, day, sched_arr_time),
+  ) |>
+  select(origin, dest, matches(".*(delay|time)$"))
+  
+```
