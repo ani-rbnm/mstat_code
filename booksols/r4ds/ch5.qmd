@@ -1,0 +1,30 @@
+---
+title: R 4 DS, ch5, Data Tidying
+format: html
+---
+
+
+```{r}
+#| message: true
+library(tidyverse)
+library(nycflights13)
+```
+
+* pivot to the longer format
+```{r}
+longer <- billboard |>
+  pivot_longer(
+    cols = matches("^wk.*"),
+    names_to = "week",
+    values_to = "rank",
+    values_drop_na = T
+  )
+longer
+```
+* change week values to keep only the first number found
+
+```{r}
+longer <- longer |>
+  mutate(week = parse_number(week))
+longer
+```
