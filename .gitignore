@@ -53,6 +53,4 @@ renv/
 *.html
 renv*
 .Rprofile
-ch1_files/
-ch2_files/
-ch3_files/
+*_files/
