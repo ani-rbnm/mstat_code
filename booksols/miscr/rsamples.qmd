@@ -1,0 +1,27 @@
+---
+title: R snippets
+format: html
+---
+
+* *mode* corresponds to data type. For eg. every element of `vector` type have the same mode
+
+
+```{r}
+mode(1:10)
+```
+* Typical use of lists - combine dissimilar data returned by a function
+`hist()` is a typical example
+
+```{r}
+hn <- hist(Nile)
+str(hn)
+hn$density
+class(hn)
+str(1:3)
+```
+* attributes of a class using the `attribute()` function
+
+
+```{r}
+```
+
