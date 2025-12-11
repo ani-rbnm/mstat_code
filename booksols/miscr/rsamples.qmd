@@ -134,3 +134,26 @@ abaf <- aba_df[grps$F,]
 plot(abam$Diameter ~ abam$Length, pch = 16)
 points(abaf$Diameter ~ abaf$Length, pch = "x", col="blue")
 ```
+
+### Matrices
+
+* `row()` returns the row value of each element in a vectorised function. Same with `col()`
+
+Following example makes a covariance matrix with same covariance $\rho$
+```{r}
+makeCov <- function(rho, n) {
+  mcov <- matrix(nrow = n, ncol = n)
+  mcov <- ifelse(row(mcov) == col(mcov), 1, rho)
+  mcov
+}
+makeCov(0.23, 5)
+```
+* `apply()` returns a vector. 
+Below function mimics what `colMeans()` does
+
+
+```{r}
+z <- matrix(1:6, nrow = 3)
+apply(z, MARGIN = 2, FUN = mean)
+colMeans(z)
+```
