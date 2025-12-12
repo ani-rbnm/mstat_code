@@ -156,4 +156,107 @@ Below function mimics what `colMeans()` does
 z <- matrix(1:6, nrow = 3)
 apply(z, MARGIN = 2, FUN = mean)
 colMeans(z)
+class(z)
 ```
+* using `rbind()` and `cbind()` to add vectors to matrices
+
+
+```{r}
+m <- matrix(1:9, nrow = 3)
+# recycling occurs here
+rbind(m, 21)
+```
+* matrix is a bit more than a vector as suggested by the `nrow()`, `dim()`, `ncol()`
+
+```{r}
+m <- matrix(1:9, nrow = 3)
+class(m)
+nrow(m)
+ncol(m)
+dim(m)
+attributes(m)
+
+```
+
+* use `drop = F` to disable dimensionality reduction
+
+### Lists
+
+* what is the classname and attributes of list
+
+
+```{r}
+lst <- list(name="Joe", salary = 55000, union = T)
+class(lst)
+attributes(lst)
+```
+* can create list using `vector(mode="list")`
+
+
+```{r}
+z <- vector(mode = "list")
+class(z)
+```
+* concatenating lists
+
+```{r}
+cl <- c(list("Joe", 55000, T), list(5))
+```
+* concatenating values to element of a list
+
+
+```{r}
+lst <- list()
+# When the element is non-existent
+lst[["first"]] <- c(lst[["first"]], 1)
+lst
+# When element is existent
+lst[["first"]] <- c(lst[["first"]], 2)
+lst
+```
+* `unlist()` to flatten list into vector
+
+```{r}
+lst <- list(name = "Joe", salary = 55000, union = T)
+v <- unlist(lst)
+v
+class(v)
+```
+##### Example: creating a list containing indices of original vector corresponding to the tag of the list
+
+```{r}
+g <- c("M", "M", "F", "F", "M", "F", "F", "M", "I")
+lidx <- lapply(c("M", "F", "I"), \(gender)which(g == gender))
+names(lidx) <- c("M", "F", "I")
+lidx
+```
+### Dataframes
+
+* Accessing elements: we can access elements of a dataframe using the 3 methods of lists, but also 
+using the matrix element access methods
+
+```{r}
+d <- data.frame(kids = c("Jack", "Jill", "Morgan"), ages = c(12,10, 11), gender = c("M", "F", "M"))
+class(d)
+attributes(d)
+d[,"ages"]
+d[,2]
+# selection example: "kids" column where gender is a certain value
+# d[d[,"gender"] == "M", "kids", drop = F]
+d[d$gender == "M", "kids", drop = F]
+colnames(d) <- c("k", "a", "g")
+d
+```
+* dealing with NA values
+
+
+```{r}
+d <- data.frame(kids = c("Jack", "Jill", "Morgan"), ages = c(12,10, 11), gender = c(NA, "F", "M"))
+any(is.na(d[d$gender == "M", "kids"]))
+d[!is.na(d$gender) & d$gender == "M", "kids"]
+# subset() would automatically ignore the NA values
+subset(d, gender=="M")$kids
+
+```
+* `complete.cases(d)` for a T/F vector, with T being for those will none of the col value = NA
+
