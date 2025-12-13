@@ -38,7 +38,6 @@ attributes(lma)
 ```
 * can access attributes by abbreviation of the attribute names as long as there is no conflict
 
-
 ```{r}
 lma$coe
 ```
@@ -151,7 +150,6 @@ makeCov(0.23, 5)
 * `apply()` returns a vector. 
 Below function mimics what `colMeans()` does
 
-
 ```{r}
 z <- matrix(1:6, nrow = 3)
 apply(z, MARGIN = 2, FUN = mean)
@@ -159,7 +157,6 @@ colMeans(z)
 class(z)
 ```
 * using `rbind()` and `cbind()` to add vectors to matrices
-
 
 ```{r}
 m <- matrix(1:9, nrow = 3)
@@ -184,14 +181,12 @@ attributes(m)
 
 * what is the classname and attributes of list
 
-
 ```{r}
 lst <- list(name="Joe", salary = 55000, union = T)
 class(lst)
 attributes(lst)
 ```
 * can create list using `vector(mode="list")`
-
 
 ```{r}
 z <- vector(mode = "list")
@@ -203,7 +198,6 @@ class(z)
 cl <- c(list("Joe", 55000, T), list(5))
 ```
 * concatenating values to element of a list
-
 
 ```{r}
 lst <- list()
@@ -249,7 +243,6 @@ d
 ```
 * dealing with NA values
 
-
 ```{r}
 d <- data.frame(kids = c("Jack", "Jill", "Morgan"), ages = c(12,10, 11), gender = c(NA, "F", "M"))
 any(is.na(d[d$gender == "M", "kids"]))
@@ -260,3 +253,28 @@ subset(d, gender=="M")$kids
 ```
 * `complete.cases(d)` for a T/F vector, with T being for those will none of the col value = NA
 
+### Factors
+
+* main functions: `tapply()`, `split()` , `by()` and `ave()`
+
+
+```{r}
+ages <- c(25, 26, 55, 37, 21, 42)
+affils <- c("R", "D", "D", "R", "U", "D")
+tapply(ages, affils, mean)
+ave(ages, affils, FUN = max )
+split(ages, affils)
+```
+##### Example - `tapply()` using multi-column categories
+* key info: the group by columns must be passed as a `list`
+
+```{r}
+d <- data.frame(list(
+  gender = c("M", "M", "F", "M", "F", "F"),
+  age = c(47, 59, 21,32, 33, 24), income = c(55000, 88000, 32450, 76500, 123000, 45650)
+))
+d
+d$over25 <- ifelse(d$age > 25, 1,0)
+d
+tapply(d$income, list(d$gender, d$over25), mean)
+```
