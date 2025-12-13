@@ -1,4 +1,4 @@
----
+,--
 title: R snippets
 format: html
 ---
@@ -64,7 +64,7 @@ v[-length(v)]
 * How do we **convert a vector into a matrix** ? Use `sapply()` and use a function that returns a vector. Each vector returned then would correspond to a column
 
 ```{r}
-sapply(1:8, \(x) c(x, x^2)) # lambda function
+sapply(1:8, function(x) c(x, x^2)) # lambda function
 ```
 * use of `NULL` - When we want to incrementally build a vector. Initialising with `NULL` helps use predeclare variable without any element in it.
 - This is different from `NA`. This is a legitimate but unknown value so if initialised with it, `NA` would be the first element.
@@ -257,7 +257,7 @@ subset(d, gender=="M")$kids
 
 * main functions: `tapply()`, `split()` , `by()` and `ave()`
 
-
+**`split()` can be applied on the whole dataframe as opposed to a single column like with `tapply()`**
 ```{r}
 ages <- c(25, 26, 55, 37, 21, 42)
 affils <- c("R", "D", "D", "R", "U", "D")
