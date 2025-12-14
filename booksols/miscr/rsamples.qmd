@@ -300,7 +300,6 @@ sum(1:3*c(5,12,13))
 m <- matrix(1:9, nrow = 3)
 diag(m)
 ```
-=======
 * can use *matrix like* references for both data frames and tables
 
 ```{r}
@@ -344,4 +343,3 @@ str(subtbl)
 
 ```
 
->>>>>>> 2a147e5880729885d1d76ab4c0c06053bd9af366
