@@ -1,0 +1,52 @@
+---
+title: R 4 DS, ch16, datetime
+format: html
+---
+
+* current date and time 
+
+```{r}
+now()
+today()
+library(tidyverse)
+library(nycflights13)
+```
+
+* converting to date and date time
+
+```{r}
+df <- tribble(
+  ~name, ~dob, ~dtob,
+  "John", "10-1-1990", "10-1-1990h 10:20:10",
+  "Dave", "20-2-1990", "20-2-1990h 23:20:10",
+  "Pat", "31-5-1980", "31-5-1980h 10:20:10",
+
+)
+glimpse(df)
+df <- df |>
+  mutate(
+    dob = dmy(dob),
+    dtob = dmy_hms(dtob)
+  )
+df |>
+  mutate(
+    yr = year(dtob),
+    mon = month(dtob),
+    day = mday(dtob),
+    hr = hour(dtob),
+    min = minute(dtob),
+    sec = second(dtob),
+    .keep = "used"
+  )
+```
+* date_time from individual components: `make_datetime()`
+
+
+```{r}
+flights |>
+  select(year, month, day, hour, minute) |>
+  mutate(
+    departure = make_datetime(year, month, day, hour, minute)
+  )
+```
+

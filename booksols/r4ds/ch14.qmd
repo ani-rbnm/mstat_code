@@ -33,3 +33,53 @@ new.df
 babynames |>
   count(length = str_length(name), wt = n, sort = T)
 ```
+* raw string
+
+```{r}
+x <- c("\"", '\'', "\\")
+x
+str_view(x)
+```
+* `str_c()` - acts like `paste0` but built for use with `mutate()`
+
+
+```{r}
+df <- tribble(
+  ~name, ~fruit,
+  "Carmen", "banana",
+  "Carmen", "apple",
+  "Marvin", "nectarine",
+  "Terence", "cantaloupe",
+  "Terence", "papaya",
+  "Terence", "mandarin"
+)
+df |>
+  mutate(fruit_decl = str_c(fruit, " is a fruit.")) |>
+  mutate(fruit_desc = str_glue("{fruit} is a good fruit."))
+
+df |>
+  group_by(name) |>
+  summarize(
+    fruits = str_flatten(fruit, ", ")
+  )
+df |> 
+  count(name, wt = str_length(fruit), sort = T)
+```
+
+* how to separate date into columns
+
+
+```{r}
+
+df3 <- tibble(
+  x = c("a10.1.2022", "b10.2.2011", "e15.1.2015")
+) |>
+separate_wider_delim(
+x,
+delim = ".",
+names = c("id", "no", "year")
+)
+
+```
+
+

@@ -1,0 +1,49 @@
+---
+title: R 4 DS, ch13, Numbers
+format: html
+---
+
+* how to convert "wk1" to 1 (not "1")
+
+
+```{r}
+df <- tribble(
+  ~"Item No",  ~"Week",
+  1, "Wk1",
+  2, "Wk2",
+  3, "Wk3",
+  25, "Wk4"
+)
+df
+df |>
+  mutate(
+    Week = parse_number(Week)
+  )
+```
+* extracting `nth` element of each group
+
+
+```{r}
+flights |>
+  group_by(year, month, day) |>
+  summarize(
+    first_dep = first(dep_time, na_rm = T),
+    fifth_dep = nth(dep_time, 5, na_rm = T),
+    last_dep = last(dep_time, na_rm = T)
+  )
+
+flights |>
+  group_by(year, month, day) |>
+  summarize(
+    first_dep = dep_time[1],
+    fifth_dep = dep_time[5],
+    last_dep = dep_time[n() - 4],
+    n = n()
+  )
+dep_time <- flights |>
+  filter(year == 2013, month == 1, day == 1) |>
+  select(dep_time)
+
+nrow(dep_time)
+tail(dep_time)
+```
