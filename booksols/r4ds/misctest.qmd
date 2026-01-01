@@ -1,0 +1,28 @@
+---
+title: misc
+date: 30/12/2025
+format: html
+---
+
+* How do.call works
+```{r}
+m1 <- matrix(
+c(rep("M1",3),11:13), nrow = 3
+)
+m1
+
+m2 <- matrix(c(rep("M2",3),22:24), nrow = 3)
+m2
+l <- list(m1, m2)
+do.call(cbind, l)
+
+```
+
+
+```{r}
+df <- data.frame(gender = c("M", "M", "F", "M", "F"),
+  name = c("John", "Andrew", "Rita", "Dave", "Carol"),
+  age = c(22,25, 35,28, 31)
+)
+df$age[df$gender == "M"]
+```
