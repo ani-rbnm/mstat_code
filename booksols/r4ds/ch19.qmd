@@ -42,3 +42,64 @@ flts |>
     select(faa, lat, lon, name),
     join_by(origin == faa))
 ```
+* using anti-join
+
+
+```{r}
+flights |>
+  distinct(dest) |>
+  anti_join(
+    y = airports,
+    by = join_by(dest == faa)
+  )
+flights |>
+  count(is.na(dest))
+```
+* checking NA
+
+
+```{r}
+df <- tibble(x = c(1,2,NA, 3, NA))
+df
+df |>
+  count(isna = is.na(x)) |>
+  filter(isna & n > 1)
+```
+
+* left_join
+
+
+```{r}
+flights2 <- flights |>
+  select(year, time_hour, origin, dest, tailnum, carrier)
+flights2
+```
+
+```{r}
+flights2 |>
+  left_join(
+    airlines |> select(carrier, name),
+    join_by(carrier)
+  )
+
+```
+
+```{r}
+flights2 |>
+  left_join(
+    weather |> select(origin, time_hour, temp, wind_speed)
+    # by = join_by(origin == origin, time_hour == time_hour)
+  )
+```
+* empty values are filled with NA
+
+
+```{r}
+flights2 |>
+  filter(tailnum == "N3ALAA") |>
+  left_join(
+    planes |> select(tailnum, type, engines, seats)
+  )
+```
+
+
