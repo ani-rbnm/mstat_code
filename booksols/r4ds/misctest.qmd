@@ -26,3 +26,26 @@ df <- data.frame(gender = c("M", "M", "F", "M", "F"),
 )
 df$age[df$gender == "M"]
 ```
+Initial loading
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+
+df <- tribble(
+  ~id, ~bp1, ~bp2,
+  "A", 100, 120,
+  "B", 140, 115,
+  "C", 120, 125
+)
+
+df |>
+  pivot_longer(
+    cols = c(bp1, bp2),
+    names_to = "bp",
+    names_pattern = ".*(\\d)",
+    values_to = "value"
+  )
+```
