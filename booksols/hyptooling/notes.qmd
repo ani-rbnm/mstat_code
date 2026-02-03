@@ -1,0 +1,11 @@
+---
+title: hypmod py tooling notes
+format: html
+---
+
+
+```{python}
+import sys
+print(sys.path)
+print(sys.implementation)
+```

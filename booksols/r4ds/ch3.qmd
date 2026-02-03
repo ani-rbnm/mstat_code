@@ -8,6 +8,7 @@ format: html
 #| message: false
 library(tidyverse)
 library(nycflights13)
+
 ```
 * getting a highlight of the tibble `flights`
 
@@ -30,6 +31,9 @@ How many flights departed on 1st Jan?
 ```{r}
 flights |>
   filter(day == 1 & month == 1) 
+df <- data.frame(a = 1:10, b = 11:20)
+
+
 ```
 * adding multiple conditions in `filter`: Use `%in%`
 
