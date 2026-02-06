@@ -1,0 +1,26 @@
+---
+title: Hypermodel py tooling notes
+format: html
+---
+
+#### Getting builtin module specs
+
+```{python}
+import sys
+import importlib.util
+
+for name in sorted(sys.stdlib_module_names):
+  if spec := importlib.util.find_spec(name):
+    print(f"{name:30} {spec.origin}")
+```
+#### Getting packages installed in an environment
+
+
+```{python}
+import importlib.metadata
+
+distributions = importlib.metadata.distributions()
+
+for distribution in sorted(distributions, key= lambda d: d.name):
+  print(f"{distribution.name:30} {distribution.version}")
+```
