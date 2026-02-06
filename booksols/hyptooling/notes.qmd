@@ -1,4 +1,5 @@
 ---
+<<<<<<< HEAD
 title: Hypermodel py tooling notes
 format: html
 ---
@@ -23,4 +24,15 @@ distributions = importlib.metadata.distributions()
 
 for distribution in sorted(distributions, key= lambda d: d.name):
   print(f"{distribution.name:30} {distribution.version}")
+=======
+title: hypmod py tooling notes
+format: html
+---
+
+
+```{python}
+import sys
+print(sys.path)
+print(sys.implementation)
+>>>>>>> 0aa1a685363255a88f4700c47f6782435681f6cf
 ```

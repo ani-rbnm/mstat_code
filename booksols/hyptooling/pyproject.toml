@@ -5,6 +5,7 @@ description = ""
 authors = [
     {name = "Your Name",email = "you@example.com"}
 ]
+<<<<<<< HEAD
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -14,6 +15,14 @@ dependencies = [
     "jupyter (>=1.1.1,<2.0.0)",
     "matplotlib (>=3.10.8,<4.0.0)",
     "numpy (>=2.4.1,<3.0.0)"
+=======
+requires-python = ">=3.14"
+dependencies = [
+    "jupyter (>=1.1.1,<2.0.0)",
+    "ipykernel (>=7.1.0,<8.0.0)",
+    "pyyaml (>=6.0.3,<7.0.0)",
+    "ipython (>=9.9.0,<10.0.0)"
+>>>>>>> 0aa1a685363255a88f4700c47f6782435681f6cf
 ]
 
 
