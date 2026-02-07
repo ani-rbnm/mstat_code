@@ -132,3 +132,10 @@ tracemem(x)
 x[[2]] <- x
 ref(x)
 ```
+(@) Repeated objects are counted only once
+
+```{r}
+x <- runif(1e6)
+obj_size(x)
+obj_size(list(x,x,x))
+```
