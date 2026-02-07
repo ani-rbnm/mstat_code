@@ -54,3 +54,4 @@ renv/
 renv*
 .Rprofile
 *_files/
+*.pdf
