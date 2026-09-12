@@ -24,6 +24,13 @@ knitr::opts_chunk$set(
 library(lobstr)
 library(tibble)
 ```
+
+```{r}
+
+obj_size(list(1))
+```
+
+
 (@) reassignment [does not create]{.warning} new objects.
 
 ```{r}
@@ -48,6 +55,8 @@ In order to use [non-syntactic]{.warning} identifiers, use [backticks.]{.warning
 ```
 (@) use `make.names` to convert to valid values. 
     
+(@) use `check.names = F` option with `read.csv()` since we don't want R to convert column names internally using `make.names()`
+
 (@) [copy-on-modify]{.key} objects are copied only when they are modified
 
     * Once duplicate object was created for y, it is the [single pointer]{.warning} to the new object. So, subsequent
@@ -59,6 +68,15 @@ y <- x # not here
 y[[2]] <- 22
 y[[3]] <- 24
 untracemem(y)
+```
+
+(@) copy-on-modify triggered only when there are more than one name bound to an object. So, the following does not trigger any copies.
+
+```{r}
+x <- c(1, 2, 3)
+cat(tracemem(x), "\n")
+x[[3]] <- 4
+untracemem(x)
 ```
 (@) function arguments follow copy-on-modify rule on the passed parameter too.
     
@@ -85,9 +103,9 @@ ref(l1, l2)
 ```
 (@) [copy-on-modify for data frames]{.key} Dataframes has one pointer for each column 
     
-    * [if column is modified,]{.key} Vector corresponding to the changed column will be created. 
-Then, shallow copy with pointer to the new column vector.
-    * [if row modified,]{.key} All vectors copied. Then, shallow copy to the pointers of [each new]{.warning} column.
+    * [if column is modified,]{.key} copy-on-modify would mean a new dataframe will created with new references for each column. 
+Unchanged columns will be shallow-copied i.e. reference to the unchanged column will be to the old memory of the column.
+    * [if row modified,]{.key} Deep copy will occur. The new dataframe will have reference to two brand new memory addresses.
 
 ```{r}
 df <- data.frame(a = 1:5, b = 11:15)
@@ -102,6 +120,7 @@ ref(df, df2)
 
 ```{r}
 x <- c("a", "a", "abc", "ac")
+
 ref(x, character = TRUE)
 ```
 
