@@ -27,7 +27,9 @@ library(tibble)
 
 ```{r}
 
-obj_size(list(1))
+a <- runif(1e6)
+as.numeric(obj_size(a))
+as.numeric(obj_size(list(a, a)))
 ```
 
 
@@ -134,13 +136,23 @@ x[[3]] <- 4
 untracemem(x)
 ```
 (@) [Address extensions are not reported by `tracemem`]{.warning}. Note below that `x` was copied when 
-we attempted to extend its size to 3.
+we attempted to extend its size to 3. This is [true for both vectors and lists]{.warning}.
 ```{r}
 x <- list(1, 2)
+obj_addr(x)
 tracemem(x)
 x[[3]] <- 3
-ref(x)
+obj_addr(x)
+untracemem(x)
+
+x <- c(1, 2)
+obj_addr(x)
+tracemem(x)
+x[[3]] <- 3
+obj_addr(x)
+untracemem(x)
 ```
+
 [Q. What happens when a list is allocated to itself as a member?]{.question}
 shallow-copy of x pointing to the old copy of x. [Note: Ignore the extra copies internally created by
 `ref` triggering the two extra `tracemem` messages.]
@@ -159,6 +171,41 @@ x <- runif(1e6)
 obj_size(x)
 obj_size(list(x,x,x))
 ```
+(@) [copy-in-place]{.key} when object is bound to only one name. Also, [environments]{.warning} are always modified in place.
+
+(@) [Q. What happens when `df[[1]] <- df[[1]] + 0.5` is called]{.question}
+```{r}
+df <- data.frame(x = 1:10, y = 11:20, z = 21:30)
+
+cat(tracemem(df), "\n")
+df[[1]] <- df[[1]] + 0.5
+untracemem(df)
+
+```
+
+R's [replacement function machinery]{.key} kicks in. The statement is replaced by 
+[df <- `[[<-.data.frame`(df*, i, value)]{.warning}.
+
+R creates 2 copies of the object:
+
+- [original df ──copy──► temporary df*]{.warning} before entering the replacment function. This is special behaviour of the replacement machinery and not how it works for ordinary functions.
+- [`[[<-.data.frame` is like an ordinary function whose argument x creates another reference beside the df* retained by the replacement machinery]{.warning}. So, when it is modified another 
+copy is created.
+
+(@) [Q. If there are many columns are they need to be modified in a loop, what's the recommended pattern?]{.question}
+
+Process the modification in a batch using `vapply` or `Map` and apply at a single shot using `df[]`. This will make the replacement machinery trigger only once.
+
+```{r}
+df <- data.frame(matrix(runif(5 * 10), ncol = 5))
+medians <- vapply(df, median, numeric(1))
+
+cat(tracemem(df), "\n")
+
+df[] <- Map(\(x, m_i) x + m_i, df, medians)
+# df[] <- vapply(df, \(x) x + 0.5, numeric(1))
+untracemem(df)
+```
 
 ### 2. Vectors
 
@@ -166,6 +213,67 @@ obj_size(list(x,x,x))
 **S3 Atomic vectors** Vectors with `class` attribute. Ex. `factor`,`Date`, `POSIXct`, `difftime`. 
 Some of these S3 vectors have other attributes as well.
 :::
+
+(@) [Vector hierarchy]{.key}
+
+```{mermaid}
+flowchart BT
+Logical --> Atomic
+Integer --> Numeric
+Double --> Numeric
+Numeric --> Atomic
+Character --> Atomic
+Atomic --> Vector
+List --> Vector
+NULL
+
+```
+
+(@) Vector concatenation [flattens]{.warning} into a single vector.
+
+
+```{r}
+c(c(1,2,4), c(10, 11, 12))
+```
+
+(@) `typeof()` for getting the type of the vector. [Do not use]{.warning} `mode()` or `storage.mode()` as they are there for old code compatibility purposes.
+
+```{r}
+typeof(c(1L))
+typeof(c(1))
+typeof(c(TRUE))
+typeof(c("Hello"))
+```
+(@) Only use the [lowest level type checkers]{.warning}. 
+
+```{r}
+is.integer(1L)
+is.integer(1)
+is.double(1)
+is.logical(1)
+is.logical(T)
+is.character("1")
+is.character(1)
+```
+
+(@) Every operation with `NA` leads to na [other than]{.warning} `NA^0`, `NA | TRUE` , `NA & FALSE`
+
+(@) Coercion rule: [Character > Double > Integer > Logical]{.key}.
+
+
+```{r}
+typeof(c(1L, TRUE))
+typeof(c(1, 1L, TRUE))
+typeof(c("1", 1, 1L, TRUE))
+```
+
+
+```{r}
+m <- matrix(1:10, ncol = 2)
+attrs(m)
+is.vector(m)
+```
+
 
 - `factor` are built over `integer` types, has `class` and `levels` attributes. [Non-existent
 values]{.warning} can be part of the levels as well.
