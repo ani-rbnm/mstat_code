@@ -173,7 +173,7 @@ obj_size(list(x,x,x))
 ```
 (@) [copy-in-place]{.key} when object is bound to only one name. Also, [environments]{.warning} are always modified in place.
 
-(@) [Q. What happens when `df[[1]] <- df[[1]] + 0.5` is called]{.question}
+[Q. What happens when `df[[1]] <- df[[1]] + 0.5` is called]{.question}
 ```{r}
 df <- data.frame(x = 1:10, y = 11:20, z = 21:30)
 
@@ -192,7 +192,7 @@ R creates 2 copies of the object:
 - [`[[<-.data.frame` is like an ordinary function whose argument x creates another reference beside the df* retained by the replacement machinery]{.warning}. So, when it is modified another 
 copy is created.
 
-(@) [Q. If there are many columns are they need to be modified in a loop, what's the recommended pattern?]{.question}
+[Q. If there are many columns are they need to be modified in a loop, what's the recommended pattern?]{.question}
 
 Process the modification in a batch using `vapply` or `Map` and apply at a single shot using `df[]`. This will make the replacement machinery trigger only once.
 
@@ -208,11 +208,6 @@ untracemem(df)
 ```
 
 ### 2. Vectors
-
-:::{.definition}
-**S3 Atomic vectors** Vectors with `class` attribute. Ex. `factor`,`Date`, `POSIXct`, `difftime`. 
-Some of these S3 vectors have other attributes as well.
-:::
 
 (@) [Vector hierarchy]{.key}
 
@@ -258,6 +253,12 @@ is.character(1)
 
 (@) Every operation with `NA` leads to na [other than]{.warning} `NA^0`, `NA | TRUE` , `NA & FALSE`
 
+(@) Test `NULL` and `NA` with `is.null()` and `is.na()`.
+
+```{r}
+is.null(names(1:10))
+is.na(NA)
+```
 (@) Coercion rule: [Character > Double > Integer > Logical]{.key}.
 
 
@@ -267,15 +268,52 @@ typeof(c(1, 1L, TRUE))
 typeof(c("1", 1, 1L, TRUE))
 ```
 
+[Q. Use of `is.atomic()`, `is.numeric()` and `is.vector()`?]{.question}
+- `is.atomic()`: Is it the object an atomic vector OR is it NULL?
+- `is.numeric()`: Numeric vector (integer or double) AND NOT ANY(`factor`, `Date`, `difftime`, `POSIXt`)
+- `is.vector()`: Vector AND no attributes other than names
+
+
+(@) [Attributes]{.key}: Attributes are `Pairlist`. Get with `attr()` and `attributes()`. Set with `structure()`.
+```{r}
+x <- c(1,2,3)
+is.vector(x)
+x <- structure(
+  x,
+  a = "first",
+  b = 2L
+)
+attributes(x)
+is.vector(x)
+
+```
+(@) The `dim` attribute turns an atomic vector into a matrix. So, it is set using `structure()` the atomic vector can be converted to 
+ matrix within using `matrix()` function.
 
 ```{r}
-m <- matrix(1:10, ncol = 2)
-attrs(m)
-is.vector(m)
+m <- structure(
+  1:10,
+  dim = c(5,2)
+)
+
+is.matrix(1:10)
+is.matrix(m)
+m
 ```
+[Q. Common methods of atomic vectors, matrices, and array]{.question}
+- *Vectors*: `c()`, `names()`, `length()`, `is.null(dim(x))`
+- *Matrices*: `is.matrix()`, `colnames()`, `rownames()`, `nrow()`, `ncol()`, `rbind()`, `cbind()`, `t()`
+- *Arrays*: `dimnames()`, `dim()`, `is.array()`
+
+:::{.definition}
+**S3 Atomic vectors** Vectors with `class` attribute. Ex. `factor`,`Date`, `POSIXct`, `difftime`. 
+Some of these S3 vectors have other attributes as well.
+:::
 
 
-- `factor` are built over `integer` types, has `class` and `levels` attributes. [Non-existent
+
+
+(@) `factor` are built over `integer` types, has `class` and `levels` attributes. [Non-existent
 values]{.warning} can be part of the levels as well.
 
 ```{r}
@@ -285,7 +323,7 @@ x_f <- factor(x, levels = c("a", "b", "c"))
 table(x_f)
 attributes(x_f)
 ```
-- `Date`, `POSIXct` and `difftime` built over `double`. First two are no. of days and no. of seconds
+(@) `Date`, `POSIXct` and `difftime` built over `double`. First two are no. of days and no. of seconds
 since *1970-01-01* and the latter uses `unit` to store durations.
 ```{r}
 today <- Sys.Date()
@@ -302,6 +340,32 @@ wk_1 <- as.difftime(20, units = "weeks")
 str(wk_1)
 ```
 - use `attributes(x) <- NULL` to get their undelying values.
+
+[Q. How does `level` construction and array construction happen in factor?]{.question}
+
+```{r}
+f3 <- factor(letters, level = rev(letters))
+f3
+as.integer(f3)
+```
+ 1. Numeric [level]{.warning} construction happens first. The numeric levels are from 1-26.
+ 2. The numeric levels are assigned to the [text labels]{.warning}. So, 1 is mapped to 'z', 2 to 'y' and so on. This is because 'letters' has been reversed.
+ 3. At this point the main vector is constructed. Since there exists a level, the first value 'a' is looked up against the labels of the level. It finds the corresponding
+ level as '26' so it stores 26 and so on.
+
+[Q. What happens when labels are reassigned using `levels()`]{.question}
+
+```{r}
+f <- factor(c("a", "b", "b", "c", "a", "b"))
+f
+levels(f) <- c("b", "c", "a")
+f
+```
+ 1. `levels` are constructed in the first `factor()` call along with labels. So, 1 $\rightarrow$ "a", 2 $\rightarrow$ "b"
+ 2. Main vector stores integer values (1,2,2,3,1,2)
+ 3. In the `levels(f)` call, levels are [re-leveled]{.warning}. So, 1 $\rightarrow$ "b", etc. 
+ 4. Finally, when `f` is printed, it prints the labels of the main vector based on the new labelling.
+
 
 [Q. How to convert a list to an atomic vector?]{.question} `unlist(lst)`. `unlist` strips **all** 
 attributes and retains only the underlying value.
