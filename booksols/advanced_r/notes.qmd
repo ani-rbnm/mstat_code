@@ -3,6 +3,7 @@ title: Advanced R
 format: 
   html:
     css: styles.css
+    number-sections: true
   pdf:
     include-in-header:
       text: |
@@ -18,8 +19,10 @@ knitr::opts_chunk$set(
   comment = ""
 )
 ```
-#### Imports
+# Memory Management
+
 ```{r}
+#| include: false
 ## library to inspect objects
 library(lobstr)
 library(tibble)
@@ -28,8 +31,8 @@ library(tibble)
 ```{r}
 
 a <- runif(1e6)
-as.numeric(obj_size(a))
-as.numeric(obj_size(list(a, a)))
+as.integer(obj_size(a))
+as.integer(obj_size(list(a, a)))
 ```
 
 
@@ -207,21 +210,35 @@ df[] <- Map(\(x, m_i) x + m_i, df, medians)
 untracemem(df)
 ```
 
-### 2. Vectors
+# Vectors
 
 (@) [Vector hierarchy]{.key}
 
 ```{mermaid}
 flowchart BT
+Date --> Integer
+POSIXct --> Double
+difftime --> Double
 Logical --> Atomic
 Integer --> Numeric
 Double --> Numeric
 Numeric --> Atomic
 Character --> Atomic
 Atomic --> Vector
+data.frame --> List
+tibble --> List
 List --> Vector
 NULL
 
+Logical["**Logical**"]
+Integer["**Integer**"]
+Double["**Double**"]
+Character["**Character**"]
+List["**List**"]
+
+
+Note["bold: Nodes that typeof() returns and those for which is.* function is safe to use"]
+style Note fill:#fff7ed,stroke:#ea580c,color:#9a3412
 ```
 
 (@) Vector concatenation [flattens]{.warning} into a single vector.
@@ -366,15 +383,97 @@ f
  3. In the `levels(f)` call, levels are [re-leveled]{.warning}. So, 1 $\rightarrow$ "b", etc. 
  4. Finally, when `f` is printed, it prints the labels of the main vector based on the new labelling.
 
+:::{.insight}
+Factor levels often need to be rearranged so that the reference can be a particular category when dummy variables are defined during a regression exercise.
+The statement `factor(x,levels=` does this correctly while the statement `levels(x) <-` means "rename the old labels into these new labels", which is wrong.
+The **best** option is to make the intention clear by using `relevel(df$x, ref = "c")`
+:::
+
+```{r}
+df <- data.frame(y = 1:10, x = c("a", "b", "a", "c", "a", "a", "b", "c", "c", "b"))
+
+# CORRECT
+# df$x <- factor(df$x, levels = c("c", "b", "a"))
+
+# WRONG
+# df$x <- factor(df$x)
+# levels(df$x) <- c("c", "b", "a")
+
+# BEST
+df$x <- factor(df$x)
+df$x <- relevel(df$x, ref = "c")
+# str(df)
+# df
+model.matrix(~x, data = df)
+```
 
 [Q. How to convert a list to an atomic vector?]{.question} `unlist(lst)`. `unlist` strips **all** 
-attributes and retains only the underlying value.
+attributes and retains only the underlying value. The common type is the broadest type of all. 
 
-- use `as_tibble()` to convert from `data.frame` to `tibble`
+```{r}
+l <- list(a = 1:5, b = c("a", "b", "c"))
+str(l)
+typeof(l)
+ref(l)
+l <- unlist(l)
+str(l)
+typeof(l)
+ref(l)
+```
 
-#### `tibble` > `data.frame`
+[Q. `typeof` on list returns?]{.question} `list`
 
-(@) tibble allows reference to columns defined during construction.
+[Q. Difference between `c(as.Date("1970-01-02"), as.POSIXct("1970-01-01 02:00", tz = "UTC"))` and `unlist(list(<a date>,<a posixct>))`?]{.question}
+
+- `c`:
+  1. considers what the type of the inputs are. In this case, they are `Date` and `POSIXct` respectively.
+  2. Since, the first argument is Date, it retains the Date part of both i.e. converts the later to date.
+  3. Retains the internal integer representation of date.
+
+```{r}
+d <- as.Date("1970-01-02")
+dt <- as.POSIXct("1970-01-01 01:00", tz = "UTC")
+unclass(c(d, dt))
+# In this case d is converted to posixct and internally the double representation 
+# stores the number of seconds.
+unclass(c(dt, d))
+```
+- `unlist()`
+  1. Strips all special information stored with the date/datetime objects.
+  2. No date conversations as before. Just retains the [original]{.warning} double/integer values.
+
+```{r}
+unclass(unlist(list(d, dt)))
+unclass(unlist(list(dt, d)))
+```
+
+
+(@) use `as_tibble()` to convert from `data.frame` to `tibble`
+
+## Key features of `data.frame`
+
+(1) [Both matrix-like and list-like]{.warning}: `rownames()` , `colnames()`, `nrow()`, `ncol()` work but so does `length()` which returns [no. of columns]{.warning}.
+(2) `is.data.frame()` returns true for [both]{.warning} dataframe and tibble. But `is.tibble()` returns true [for only]{.{arning} tibbles.
+
+## `tibble` > `data.frame`
+
+(1) [No auto-conversion to factor]{.key} `stringsAsFactors = FALSE` [not needed]{.warning} to prevent string columns from being automatically converted to factors.
+
+(2) [non-syntactic names]{.key} are not replace in tibbles.
+
+(3) [recycling]{.key} only works with columns of size 1 in tibbles.
+
+```{r}
+# Data frame recycled if the largest one is 
+# a multiple of all the other smaller ones. So, the below works fine.
+df <- data.frame(x = 1:6, y = 1:2)
+df
+
+# This will throw an error
+# tbl <- tibble(x = 1:10, y = 1:2)
+```
+(5) [columns during construction]{.key} Tibble allows reference to columns defined during construction.
+
 ```{r}
 df <- tibble(
 x = 1:3,
@@ -383,18 +482,32 @@ x = 1:3,
 df
 attributes(df)
 ```
-(@) single column selected `[` is [not converted automatically to vector]{.warning}.
+(6) [auto conversion of single column selection]{.key} Single column selected `[` is [not converted automatically to vector]{.warning} in tibbles.
 
 ```{r}
 df <- data.frame(
 x = 1:3,
 y = 11:13
 )
+# Autoconversion of single columns to vectors. This does not happen with tibbles.
 df[,"y"]
 df <- as_tibble(df)
-df[,"y"]
+df[,"y"] # Still a tibble
 ```
-(@) Including list as a column requires less code and is printed better
+:::{.insight}
+Use the list-style column access method `df[["y"]]` to directly get the **vector version** of a column. This makes intention clear. It works for **both `data.frame` and `tibble`**.
+Equally, **always** use **drop = FALSE** with data.frame single columns access `df[,"y", drop = F]`
+:::
+
+```{r}
+df <- tibble(
+x = 1:3,
+y = 11:13
+)
+df[["y"]]
+```
+
+(7) [simpler list-as-column].{key} Including list as a column requires less code and is printed better
 
 ```{r}
 df <- tibble(
@@ -403,16 +516,60 @@ y = list(1:2, 1:3, 1:4)
 )
 df
 ```
-[Q. How do we get a selected tibble column directly in the form of a vector] `df[["col1"]]`
+[Q. How do we include `list`, `matrix`, `array` in `data.frame`]{.question} 
+
+Either [define separately]{.warning} or [use `I`]{.warning}. `I` means "leave it as-it-is."
+
+```{r}
+# This won't work
+# df <- data.frame(x = 1:3, y = list(1:3, 1:4, 1:5))
+
+# OPTION 1:
+df <- data.frame(x = 1:3)
+df$y = list(1:3, 1:4, 1:5)
+df
+
+# OPTION 2:
+df <- data.frame(x = 1:3, y = I(list(1:3, 1:4, 1:5)))
+```
+(8) [Row names not supported]{.key} Tibbles do not support row names. We can use `rownames` attribute to convert to a column.
+
+
+```{r}
+df <- data.frame(x = 1:3, y = 21:23, row.names = c("first", "second", "third"))
+tb <- as_tibble(df, rownames = "names")
+tb
+```
+
+[Q. What happens when we transpose a dataframe?]{.question} data.frame is converted into a matrix.
+
+[Q. Whats the difference between `as.matrix()` and `data.matrix()`]{.question}
+
+`as.matrix()` uses the Char > Double > int > logical hierarchy. `data.matrix()` converts the values into [numeric values]{.warning}.
+
+`data.matrix()` rules:
+
+  1. *Characters*: convert into factors and return their internal values.
+  2. *Factors*: Return internal integer values. 
+
 
 ```{r}
 df <- data.frame(
-x = 1:3,
-y = 11:13
+  a = c("a", "b"),
+  b = c(TRUE, FALSE),
+  c = c(1L, 0L),
+  d = c(1.5, 2),
+  e = factor(c("f1", "f2"))
 )
-df[["y"]]
+
+am <- as.matrix(df)
+dm <- data.matrix(df)
+am
+typeof(am)
+dm
+typeof(dm)
 ```
 
-```{r}
-a <- numeric()
-```
+
+
+
