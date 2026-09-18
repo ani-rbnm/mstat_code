@@ -572,4 +572,81 @@ typeof(dm)
 
 
 
+# Subsetting
+
+(@) When one of the elements in the boolean subset list is `NA`, the result is `NA`
+
+
+```{r}
+v <- c(10, 11, 12)
+v[c(T, NA, F)]
+```
+
+## Subsetting Rules
+
+||Matrix | List | Data frames
+|---|---|---|---
+`[]` with single selection criterion. eg. `item["x"]` or `item[var_x]`| [underlying vector sequence used]{.key} vector returned.| Returns list. Eg. lst["a"] | Behaves like list; returns data frames.
+`[]` with double selection criterion. eg. `i[i[x] > 3, ]` or `item[,var_x]`| [Dimensionality reduction]{.key} Drops dimension if [either row or column is 1]{.warning}. Eg. both `m[1,]` and `m[,1]` would return vectors. Hence, [always use `drop = F`]{.warning}. || ▪ [No dim. reduction if row == 1]{.key}: `df[1,]` returns a data frame <br> ▪ [Dim reduction if col == 1]{.key}: `df[,1]` returns a vector. [Always use `df[1]`]{.warning} to select single column.
+`[["a"]]` || [vector conversion]{.key}. [Recommended if vector conversion wanted]{.warning} | Behaves like list; [returns vector]{.warning}. 
+
+```{r}
+df <- data.frame(x = 1:5, y = 11:15, z = 21:25)
+col_df <- df[1]
+v_df <- df[,1]
+is.data.frame(col_df)
+is.data.frame(v_df)
+```
+```{r}
+df <- data.frame(x = 1:10, y = 11:20, z = 21:30)
+s_df <- df[df$x == 1, ]
+is.vector(s_df)
+s_df
+attributes(s_df)
+```
+:::{.insight}
+1. **Matrices**: Always use `drop = F` when using double selection criteria. In these cases the dimensionality reduction is often unintended.
+2. **Dataframe**: 
+    - *Row selection*: No problem in using row selection criteria such as `df[df$x > 1, ]` as dimensions are not dropped for single rows. 
+    - *Column selection*: mimic list; Use `df["c"]` to get column. If the vector is to be extracted, use `df[["c"]]`.
+:::
+
+[Q. What is the difference between `x[NA]` and `x[NA_real_]` ?]{.question} `NA` is boolean hence it is [recycled]{.warning} in the selection criteria. Therefore, 
+a vector of `NA` are returned. On the other hand, `NA_real_` is real, so R only looks for the `NA_real_` th index and upon not finding it returns a [single]{.warning} `NA`.
+
+```{r}
+x <- 1:5
+x[NA]
+x[NA_real_]
+```
+(@) [Matrix in the selection criteria]{.key} 
+    - Treats first and second columns as row and column index respectively. 
+    - Returns a [vector]{.warning}.
+
+[Q. Whats the difference between `df$x[] = list(NULL)` and `df$x = NULL`]{.question} The former sets all values of column `x` to `NULL` while the latter deletes `x`.
+[Note the `list(NULL)`]{.warning}. This is needed as `NULL` by itself is a zero length vector.
+
+```{r}
+df <- data.frame(x = 1:5, y = 11:15)
+df$x[] = list(NULL)
+df
+df$x = NULL
+df
+```
+[Q. How to get the diagonal of a matrix]{.question} Use the [matrix selection criterion]{.warning} property.
+
+```{r}
+df <- data.frame(x = 1:5, y = 11:15)
+diag_val <- min(nrow(df), ncol(df))
+df
+
+df[
+  matrix(
+  rep(seq_len(diag_val), each = diag_val),
+    nrow = diag_val, byrow = T
+  )
+]
+```
+
+
 
