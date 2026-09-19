@@ -1,0 +1,68 @@
+---
+title: Advanced R
+format: 
+  html:
+    css: styles.css
+    number-sections: true
+  pdf:
+    include-in-header:
+      text: |
+        \input{preamble.tex}
+---
+```{r}
+library(rlang)
+```
+
+
+```{r}
+y <- 10
+
+f1 <- function(x = {y <- 1; 2}, y = 0) {
+  c(x,y)
+} 
+f1(y = 30)
+y
+```
+
+
+```{r}
+f1 <- function(x = stop("This is an error!")) {
+  stop <- function(...) Sys.time()
+  print(x)
+}
+f1(x = stop("Error!"))
+```
+- Environments
+
+
+```{r}
+e1 <- env(
+  a = FALSE,
+  b = 1L,
+  c = 2,
+  d = "first"
+)
+
+env_print(e1)
+names(e1)
+ls(e1)
+formals(ls)
+
+env_print(current_env())
+```
+
+- Use `identical()` to check if two environments are the same
+
+
+```{r}
+identical(current_env(), e1)
+identical(current_env(), global_env())
+f1 <- function() {
+  print(identical(current_env(), global_env()))
+  print(identical(globalenv(), environment()))
+  print(env_parents(current_env() , last = empty_env()))
+}
+f1()
+```
+
+
