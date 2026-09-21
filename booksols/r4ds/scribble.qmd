@@ -1,0 +1,77 @@
+---
+title: Scribble pad
+format: html
+---
+
+
+```{r}
+library(tidyverse)
+library(palmerpenguins)
+```
+- Distribution of 
+    - categorical variables with `geom_bar`
+    - numerical variables with `geom_histogram`
+    - numerical vs categorical with `geom_boxplot` or `geom_density` + `aes(x = ..., color = species, fill = species), alpha = 0.5`
+    - categorical vs categorical  - `geom_bar` with `color = species`
+
+
+```{r}
+glimpse(penguins)
+```
+
+
+```{r}
+penguins |>
+  group_by(species) |>
+  summarize(count = n()) |>
+  arrange(desc(count))
+
+penguins |>
+  ggplot(aes(x = fct_infreq(species))) +
+  geom_bar() +
+  theme_minimal()
+```
+
+
+```{r}
+hist_bins <- function(binw, ...) {
+  p <- penguins |>
+    ggplot(aes(x = body_mass_g)) +
+      geom_histogram(binwidth = binw, ...) + 
+      theme_minimal()
+  print(p)
+}
+
+bins <- c(20, 2000)
+walk(bins, hist_bins, na.rm = T)
+```
+
+ Numeric vs categorical
+
+
+```{r}
+penguins |>
+  ggplot(aes(x = species, y = body_mass_g)) + 
+  geom_boxplot(na.rm = T) + 
+  theme_minimal()
+
+penguins |>
+  ggplot(aes(x = body_mass_g)) +
+  geom_density(aes(color = species, fill = species), alpha = 0.5, na.rm = T) + 
+  labs(
+    x = "Body mass",
+    y = "Density",
+    title = "Density for each species",
+    color = "Species"
+  ) +
+  theme_minimal()
+```
+
+
+```{r}
+penguins |>
+  ggplot(aes(x = island)) +
+  geom_bar(aes(fill = species), position = "fill") +
+  labs(fill = "Especies") + 
+  theme_minimal()
+```
