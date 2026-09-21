@@ -65,4 +65,52 @@ f1 <- function() {
 f1()
 ```
 
+- Checking which environment is updated by `<<-`
+
+
+```{r}
+f1 <- function() {
+  f2 <- function() {
+    a <<- 21
+  }
+  f2()
+  env_print(current_env())
+  env_print(global_env())
+}
+f1()
+
+```
+
+-- *Functionals* using `purrr`
+
+
+```{r}
+library(purrr)
+library(tibble)
+```
+
+
+```{r}
+data.frame(map2(1:3, 20, `+`)) 
+```
+
+```{r}
+vals <- mtcars |> split(mtcars$cyl)
+vals |>
+  map(~ lm(mpg ~ wt, data = .x)) |> 
+  map(summary) |>
+  map_dbl("adj.r.squared")
+  # map_dbl(2)
+```
+
+
+```{r}
+df <- data.frame(
+x = 1:10,
+y = 11:20
+)
+df
+pwalk(df, \(...) print(paste(...)))
+
+```
 
