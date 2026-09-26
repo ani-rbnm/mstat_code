@@ -10,6 +10,8 @@ library(palmerpenguins)
 library(nycflights13)
 library(Lahman)
 library(ggridges)
+library(ggrepel)
+library(patchwork)
 ```
 - Distribution of 
     - categorical variables with `geom_bar`
@@ -530,6 +532,63 @@ smaller |>
   # geom_boxplot(aes(group = cut_width(carat, 0.1)), varwidth = T)
   geom_boxplot(aes(group = cut_number(carat, 20)))
 ```
+# Communicate
 
+
+```{r}
+df <- tibble(
+  x = 1:10,
+  y = cumsum(x^2)
+)
+
+df |> ggplot(aes(x, y)) +
+  geom_point() +
+  labs(
+    x = expression(~x[i]),
+    y = expression(~sum(x[i]^2, i==1, n))
+  )
+```
+
+
+```{r}
+trend_text <- "larger engine sizes tend to have lower fuel economy." |>
+  str_wrap(width = 30)
+trend_text
+```
+
+- Creating text and displaying it using ggrepel
+
+```{r}
+label_info <- mpg |>
+  group_by(drv) |>
+  arrange(desc(displ)) |>
+  slice_head(n = 1) |>
+  mutate(
+    drv_label = case_when(
+      drv == "f" ~ "front-wheel drive",
+      drv == "r" ~ "rear-wheel drive",
+      drv == "4" ~ "4-wheel drive"
+    )
+  ) |>
+  select(displ, drv, drv_label, hwy)
+
+label_info
+```
+
+
+```{r}
+mpg |>
+  ggplot(aes(x = displ, y = hwy, color = drv)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(formula = y ~ x, se = F, method = "loess") +
+  geom_label_repel(
+    data = label_info, aes(x = displ, y = hwy, label = drv_label),
+    fontface = "bold", nudge_y = 2, size = 5
+  ) +
+  theme(legend.position = "None", panel.background = element_rect(fill = "NA"), 
+    panel.grid.major = element_line(color = "grey90"), panel.grid.minor = element_line(color = "grey95")) 
+  # theme_minimal()
+
+```
 
 
