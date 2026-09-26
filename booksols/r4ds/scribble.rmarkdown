@@ -479,57 +479,10 @@ smaller |>
 - Investigate outliers on the right;
 
 ```{r}
-diamonds |>
-  ggplot(aes(x = y)) +
-  geom_histogram(binwidth = 0.5) +
-  coord_cartesian(ylim = c(0, 50), xlim = c(-5, 20))
-```
-- Investigating the outliers
-
-
-```{r}
-unusual <- diamonds |>
-  filter(y < 2 | y > 20) |>
-  select(price, x, y, z) |>
-  arrange(y)
-
-```
-- Best solution is to replace the unusual values with NA
-
-
-```{r}
-diamonds2 <- diamonds |>
-  mutate(y = if_else(y < 3 | y > 20, NA, y))
-
-diamonds2 |>
-  ggplot(aes(x = x, y = y)) +
-  geom_point(na.rm = T)
-```
-
-- `geom_freqpoly()` is inadequate when the numbers are very different. Use `after_stat(density)`??
-
-
-```{r}
-flights |>
-  mutate(
-    cancelled = is.na(dep_time),
-    sched_hour = sched_dep_time %/% 100,
-    sched_min = sched_dep_time %% 100,
-    sched_dep_time = sched_hour + (sched_min / 60)
-  ) |>
-  ggplot(aes(x = sched_dep_time)) +
-  geom_freqpoly(aes(y = after_stat(density), color = cancelled), binwidth = 0.25)
-```
-
-- continuous vs continuous with one variable cut into bins
-
-
-```{r}
 smaller |>
-  ggplot(aes(x = carat, y = price)) +
-  # geom_boxplot(aes(group = cut_width(carat, 0.1)), varwidth = T)
-  geom_boxplot(aes(group = cut_number(carat, 20)))
+  ggplot(aes(x = carat)) +
+  geom_histogram(binwidth = 0.01) +
+  coord_cartesian(ylim = c(0, 100))
 ```
-
 
 
