@@ -588,7 +588,135 @@ mpg |>
   theme(legend.position = "None", panel.background = element_rect(fill = "NA"), 
     panel.grid.major = element_line(color = "grey90"), panel.grid.minor = element_line(color = "grey95")) 
   # theme_minimal()
+```
+
+```{r}
+lbl_txt <- str_wrap("This is just a test label I am placing in the chart", width = 20)
+mpg |>
+  ggplot(aes(x = displ, y = hwy, color = drv)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(formula = y ~ x, se = F, method = "loess") +
+  geom_label_repel(
+    data = label_info, aes(x = displ, y = hwy, label = drv_label),
+    fontface = "bold", nudge_y = 2, size = 5
+  ) +
+  theme(legend.position = "None", panel.background = element_rect(fill = "NA"), 
+    panel.grid.major = element_line(color = "grey90"), panel.grid.minor = element_line(color = "grey95")) +
+  geom_vline(xintercept = 3.5, linetype = "dashed", color = "grey50") +
+  annotate(
+    geom = "label", 
+    x = 4, y = 35, label = lbl_txt,
+    color = "red", hjust = "left"
+  ) +
+  annotate(
+    geom = "segment", 
+    xend = 3.6, y = 35, x = 3.95, yend = 35,
+    color = "red"
+  )
 
 ```
 
+```{r}
+diamonds |>
+  ggplot(aes(x = price, y = cut)) +
+  geom_boxplot(alpha = 0.4)
+```
 
+
+```{r}
+diamonds |>
+  ggplot(aes(x = cut, fill = clarity)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(name = "Percentage", labels = label_percent())
+```
+
+
+```{r}
+ggplot(diamonds, aes(x = cut, fill = clarity)) +
+geom_bar(position = "fill") +
+  scale_y_continuous(name = "Percentage", labels = label_percent())
+```
+
+# Dates
+
+
+```{r}
+csv <- "
+  name, dob
+  first, 21/2/15
+  second, 1/11/16
+  third, 30/12/17
+  "
+
+df <- read_csv(csv)
+df$dob <- dmy(df$dob)
+df
+```
+
+- Today's date components
+
+
+```{r}
+date <- today()
+year(date)
+month(date)
+mday(date)
+yday(date)
+wday(date)
+hour(date)
+min(date)
+second(date)
+
+
+dttm <- make_datetime(2026L, 9L, 27L)
+dttm <- structure(dttm, myattr = "Anirban")
+
+dttm |> attr("myattr")
+```
+
+
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+flights_dt <- flights |>
+filter(!is.na(dep_time), !is.na(arr_time)) |>
+mutate(
+dep_time = make_datetime_100(year, month, day, dep_time),
+arr_time = make_datetime_100(year, month, day, arr_time),
+sched_dep_time = make_datetime_100(year, month, day, sched_dep_time),
+sched_arr_time = make_datetime_100(year, month, day, sched_arr_time)
+) |>
+select(origin, dest, ends_with("delay"), ends_with("time"))
+```
+
+
+```{r}
+
+p1 <- flights_dt |>
+  count(week = floor_date(dep_time, "week")) |>
+  ggplot(aes(x = week, y = n)) + 
+  geom_freqpoly(stat = "identity")
+
+p2 <- flights_dt |>
+  mutate(week_st = floor_date(dep_time, "week")) |>
+  ggplot(aes(x = week_st))
+
+p1 + p2
+```
+
+
+```{r}
+flights_dt |>
+  mutate(init = floor_date(dep_time, "day")) |>
+  mutate(diff = hms::as_hms(dep_time - init)) |>
+  select(dep_time, init, diff) |>
+  print(n = 10)
+```
+
+
+```{r}
+flights |>
+  distinct(faa = dest) |>
+  anti_join(airports)
+```
