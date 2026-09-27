@@ -12,6 +12,7 @@ library(Lahman)
 library(ggridges)
 library(ggrepel)
 library(patchwork)
+library(readxl)
 ```
 - Distribution of 
     - categorical variables with `geom_bar`
@@ -705,7 +706,6 @@ p2 <- flights_dt |>
 p1 + p2
 ```
 
-
 ```{r}
 flights_dt |>
   mutate(init = floor_date(dep_time, "day")) |>
@@ -714,9 +714,60 @@ flights_dt |>
   print(n = 10)
 ```
 
-
 ```{r}
 flights |>
   distinct(faa = dest) |>
-  anti_join(airports)
+  anti_join(airports) # Those destinations in flights that are not there in airports
+
+flights |>
+  filter(dest == "BQN")
 ```
+
+# Joins
+
+-- Checking if a field is primary key
+
+
+```{r}
+planes |>
+  count(tailnum) |>
+  filter(n > 1) |>
+  nrow()
+
+weather |>
+  count(time_hour, origin) |>
+  filter(n > 1) |>
+  nrow()
+
+planes |>
+  filter(is.na(tailnum)) |>
+  nrow()
+```
+
+* mutating joins : `left_join(), right_join(), inner_join()`. `anti_join()` and `semi_join()` are filtering joins.
+
+
+```{r}
+flights2 <- flights |>
+  select(year, time_hour, origin, dest, tailnum, carrier)
+flights2
+```
+* Difference between inner join and semi-join
+  - Semi-join and anti-join both are filtering joins. So, the just get fields of the first argument. Semi-join only gets those in x fr which there are entries in y
+  while anti-join gets those for which there are no entries in y
+```{r}
+airports |>
+  anti_join(flights2, join_by(faa == origin))
+```
+
+Eg. find those entries in flights for which there are no tailnum entries in planes
+
+
+```{r}
+flights2 |>
+  anti_join(planes, by = join_by(tailnum)) |>
+  distinct(tailnum)
+  
+```
+
+
