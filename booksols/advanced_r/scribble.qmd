@@ -11,6 +11,7 @@ format:
 ---
 ```{r}
 library(rlang)
+library(lobstr)
 ```
 
 
@@ -23,7 +24,30 @@ f1 <- function(x = {y <- 1; 2}, y = 0) {
 f1(y = 30)
 y
 ```
+{
 
+```{r}
+df <- data.frame(y = 1:10, x = c("a", "b", "a", "c", "a", "a", "b", "c", "c", "b"))
+# df$x <- factor(df$x)
+# levels(df$x)
+# df
+```
+
+
+```{r}
+df$x <- relevel(df$x, ref = "c")
+levels(df$x)
+df
+```
+
+
+```{r}
+# df$x <- factor(df$x, levels = c("c", "b", "a"))
+# levels(df$x)
+# df
+data.matrix(df)
+```
+}
 
 ```{r}
 f1 <- function(x = stop("This is an error!")) {
