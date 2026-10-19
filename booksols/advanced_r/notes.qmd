@@ -695,11 +695,39 @@ boolean functions.
 x1 <- 1:10 %% 2 == 0
 which(x1)
 
-x <- NA
-y <- if (x) 3
-y
 ```
+[Q. How to call a function whose arguments are in a list?]{.question} `do.call`
 
+```{r}
+args <- list(1:10, na.rm = TRUE)
+do.call(mean, args)
+```
+[Q. How to get the containing environment of a function?]{.question} `environment(myfunc)`
 
+[Q. What are base R equivalents of purr functions `seek`, `map`, `map_int`, `map2 ` ]{.question}
+`seek` = `Filter()`, `map` = `lapply`, `map_int` = `lapply() |> unlist()` and `map2` = `Map`. The base R functions have the 
+function as the first argument. [Another important base R function is `sort(decreasing = TRUE)`.]{.warning}
 
+```{r}
+objs <- mget(ls("package:base", all = TRUE), inherits = TRUE)
+funs <- Filter(is.function, objs)
+
+n_args <- funs |>
+  lapply(formals) |>
+  lapply(length) |>
+  unlist()
+
+n_args |>
+  sort(decreasing = T) |>
+  head()
+
+n_args <- funs |>
+  Filter(f = \(x) !is.primitive(x)) |>
+  lapply(formals) |>
+  lapply(length) |>
+  unlist()
+
+sum(n_args == 0)
+```
+[Q. What does `length(NA)` and `length(NULL)` return?]{.question} 1 and 0 respectively.
 

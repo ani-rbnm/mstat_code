@@ -27,25 +27,19 @@ y
 {
 
 ```{r}
-df <- data.frame(y = 1:10, x = c("a", "b", "a", "c", "a", "a", "b", "c", "c", "b"))
-# df$x <- factor(df$x)
-# levels(df$x)
-# df
-```
+x <- 10
+f2 <- function() {
+  f3 <- function() {
+    x + 10
+  }
+  print(environment(f3))
+  f3
+}
+
+f2()()
+environment(f2)
 
 
-```{r}
-df$x <- relevel(df$x, ref = "c")
-levels(df$x)
-df
-```
-
-
-```{r}
-# df$x <- factor(df$x, levels = c("c", "b", "a"))
-# levels(df$x)
-# df
-data.matrix(df)
 ```
 }
 
