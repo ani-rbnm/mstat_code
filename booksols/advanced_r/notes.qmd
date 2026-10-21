@@ -26,6 +26,8 @@ knitr::opts_chunk$set(
 ## library to inspect objects
 library(lobstr)
 library(tibble)
+library(purrr)
+library(rlang)
 ```
 
 ```{r}
@@ -730,4 +732,282 @@ n_args <- funs |>
 sum(n_args == 0)
 ```
 [Q. What does `length(NA)` and `length(NULL)` return?]{.question} 1 and 0 respectively.
+
+(@) [Name resolution]{.warning} uses [lexical scoping.]{.key} This means that it uses parse-time rather than run-time dynamics using the concept of environments.
+  1. Functions look for variables [in the environment they were defined]{.warning} not where they are called.
+
+```{r}
+f1 <- function() {
+  x + y
+}
+f2 <- function() {
+  x <- 10; y <- 11
+  f1()
+}
+f2()
+```
+  2. [Dynamic lookup]{.warning} The latest value of a variable is used when looking up.
+
+```{r}
+x <- 10
+f1 <- function() {
+  x
+}
+f1()
+x <- 15
+# At this point value of x is changed. Now when the function looks up the value in its definition environment it fetches
+# the variable with its latest values
+f1()
+```
+
+(@) [Lazy evaluation]{.key} [of arguments]{.warning} 
+  1. Uses the concept of [promise]{.key} data structure which is expression + environment against which it it evaluated + value (evaluated only one and stored)
+  2. argument is evaluated only if/when it is accessed first in the function.
+  3. [Different environment for default assigned arguments and those without]{.warning} Default uses the function execution environment 
+  rather than the definition environment. This combined with lazy evaluation means the following works:
+
+```{r}
+f1 <- function(x = 1, y = x + 21, z = a + b) {
+  a <- 22; b <- 23
+  # z is lazily evaluated AFTER a and b are defined
+  c(x,y,z)
+}
+f1()
+```
+
+```{r}
+f1 <- function(x = ls()) {
+  # the promise of x is constructed here. The environment it uses is the current exec env.
+  # So it lists the objects in this environment not the global environment where f1() is executed.
+  x
+}
+f2 <- function(x) x
+f1()
+f2(ls()) |> head()
+```
+[Q. Lazy evaluation - What does this print?]{.question}
+
+```{r}
+y <- 10
+f1 <- function(x = {y <- 5; 2}, y = 0) {
+  c(x, y)
+}
+f1()
+y
+```
+
+(@) Closing connections with `on.exit(..., add = T)`, use the `after = FALSE` flag to execute the last defined first.
+
+```{r}
+f1 <- function() {
+  on.exit(message("a"), add = TRUE, after = FALSE)
+  on.exit(message("b"), add = TRUE, after = FALSE)
+}
+f1()
+```
+
+(@) Types of functions: [prefix, infix, replacement, special.]{.key}
+
+(@) Priority of argument mapping [Exact match > partial match > position]{.key}
+
+```{r}
+f1 <- function(f, a, ba) {
+  c(f = f, a = a, ba = ba)
+}
+
+# since f is taken out of the equation the next positional match is with the second argument
+f1(2, 3, f = 1)
+f1(b = 3, f = 1, 2)
+```
+[Q. How to list all names bound by an environment?]{.question} `names()` for base R (`ls()` for old R) and `env_names(e1)` for new R.
+
+[Q. What are the `rlang` functions for getting global, current, and empty environments?]{.question} `rlang::global_env()`, `current_env()`, `empty_env()`.
+Use `identical(global_env(), current_env())` to check if the current environment is the global one.
+
+[Q. How to get the full hierarchy of the current environment?]{.question} Use `env_parents()` with the `last` option set to the empty environment. 
+Empty environment is [the only environment]{.warning} without a parent.
+
+```{r}
+e1 <- env(a = 1, b = "first")
+rlang::env_parents(e1, last = empty_env())
+```
+[Q. `x<<-1` sets the value of `x` in the parent environment when it finds it. If it doesn't, where does it create x? ]{.question} In the global environment.
+The `<<-` operator is most commonly used with function factories.
+
+[Q. Consistent way to set and unset values using the rlang package]{.question} 
+  - `env_bind(e1, a = 1)` which [binds in-place]{.warning}, hence no
+assignment requirement. To unbind, `env_unbind(e1, "a")`. There are others ways too but inconsistent.
+  - For base package, `e1[["a"]] <- 1` and `rm(e1, "a")`. To remove all from the current environment, `rm(names())`
+
+```{r}
+e1 <- env(a = 1)
+env_bind(e1, b = 20)
+# e1 was updated in-place without having to be assigned back to the environment variable
+env_names(e1)
+env_unbind(e1, "b")
+env_has(e1, "b")
+```
+(@) Environment chaining begins with the [execution environment]{.key} for functions. Execution environment is the child of the [function environment]{.key}.
+This extends all the way up to global environment.
+
+```{r}
+f <- function() {
+  function() {
+    print(current_env())
+    print(env_parents(current_env()) )
+  }
+}
+f()()
+```
+[Q. What's the difference between a function binding an environment vs the environment it is bound to?]{.question} 
+
+  - Every function [binds an environment]{.warning}. This is a called the [function environment]{.warning}.
+  - The function environment is the environment the function was [defined in]{.warning}.
+  - This can be different from the environment the function is [bound to]{.warning}. For eg.
+
+```{r}
+func1 <- function() {
+}
+e1 <- env()
+env_bind(e1, f = func1)
+# function bound to the name f in the environment e1
+env_names(e1)
+# function environment: global environment. This the environment func1 binds
+fn_env(func1) # or environment(e1)
+
+```
+  - Use `fn_env(func)` or `environment(func)` to get the function environment.
+  - Function environment is the parent of the execution environment. 
+
+[Q. Whats function environment(environment that the function binds) of `func`? whats the environment it is bound to?]{.question}
+
+```{r}
+x <- 50
+f <- function() x + 1
+f2 <- function() {
+  x <- 20
+  func <- f
+  func
+}
+f2()()
+```
+The function environment is Global Env while the function it is bound to is the execution environment of f2.
+
+(@) Every [package]{.warning} defines a [Package environment]{.key} and a [Namespace environment]{.key}. 
+
+  - Package env. is [how callers find functions in the package]{.key}, all functions defined in it, forms part of the [search path]{.key} when a function is imported,
+  and parent env is the package imported just before. 
+
+```{mermaid}
+flowchart LR
+
+GlobalEnv --> N["Import n (Package env)"] 
+N --> N1["Import n-1 (P env)"]
+N1 --> Base["Base (P env)"]
+Base --> EmptyEnv
+
+```
+  - Namespace environment is how package functions themselves find dependencies. Search starts with the package's own NS env file.
+  The [imports]{.key} env is based on **imports** file.
+
+```{mermaid}
+flowchart LR
+
+NS["Namespace env"] --> I["imports env"]
+I --> Base["Base (NS env)"]
+Base --> GlobalEnv
+
+```
+  - [stacks]{.key} and [frames]{.key} are the execution data structures. Each frame points to the [execution env of the corresponding function.]{.warning}
+
+
+(@) Use `invisible` to return value that is not printed by default.
+```{r}
+f1 <- function() {
+  x <- 21
+  invisible(x)
+}
+f1()
+a <- f1()
+a
+```
+
+:::{.insight}
+Difference between `cat("Hi\n")` and `message("Hi")` is in the intended purpose.
+`cat` when the primary purpose of the function is to print whereas `message` when the developer chooses to print.
+:::
+
+(@) With `tryCatch` execution stops at the point the handled condition is encountered, where as with `withCallingHandlers`,
+the execution returns to the point the condition was encountered.
+
+
+```{r}
+tryCatch(
+  message = function(cnd) cat("Message encountered\n"),
+  {
+    message("First message")
+    message("Second message")
+  }
+)
+
+withCallingHandlers(
+  message = function(cnd) cat("CH: message encountered\n"),
+  {
+    message("First message")
+    message("Second message")
+  }
+)
+```
+
+(@) Warnings are usually collated and [printed right at the end.]{.warning}
+
+```{r}
+withCallingHandlers(
+  warning = function(cnd) cat("Caught a message\n"),
+  {
+    warning("First message")
+    warning("Second message")
+  }
+)
+```
+
+[Q. How to convert warning to an error?]{.question}
+
+```{r}
+warn2error <- function(expr) {
+  tryCatch(
+    warning = function(cnd) abort(paste0("****", conditionMessage(cnd), "****")),
+    expr
+  )
+}
+warn2error(
+  {
+    x <- 2^4
+    warn("Hello")
+  }
+)
+```
+(@) Use [functionals]{.key} like `lapply()` to apply a function to a group of elements rather than using for loops.
+Functionals are functions that take a function as an input and return a vector.
+
+(@) Use `vapply(lst, mean, na.rm = T, FUN.VALUE = numeric(1))` instead of `sapply()` to convert a list output to double like
+`purrr:map_dbl`. 
+
+[Q. How to get each element satisfying a certain criteria from a list of lists?]{.question} Use `map`. Also, use
+the `.default` option to get a default value if the selection criteria does not satisfy.
+
+```{r}
+l = list(
+  list(x = 1, y = c(2,1), z = 10),
+  list(x = 2, y = c(3,1), z = 10),
+  list(x = 3, y = c(4,1,2), z = 12),
+  list(x = 21)
+)
+# Get value of all elements named "x" in a vector
+l |> map_dbl("x")
+
+# Get first element of all elements named "y". 
+l |> map_dbl(list("y", 1), .default = NA)
+```
+
 
