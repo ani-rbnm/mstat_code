@@ -698,6 +698,8 @@ x1 <- 1:10 %% 2 == 0
 which(x1)
 
 ```
+# Functions
+
 [Q. How to call a function whose arguments are in a list?]{.question} `do.call`
 
 ```{r}
@@ -819,6 +821,8 @@ f1 <- function(f, a, ba) {
 f1(2, 3, f = 1)
 f1(b = 3, f = 1, 2)
 ```
+# Environments
+
 [Q. How to list all names bound by an environment?]{.question} `names()` for base R (`ls()` for old R) and `env_names(e1)` for new R.
 
 [Q. What are the `rlang` functions for getting global, current, and empty environments?]{.question} `rlang::global_env()`, `current_env()`, `empty_env()`.
@@ -932,6 +936,25 @@ a <- f1()
 a
 ```
 
+## Environment functions
+
+||`rlang` | Base R | 
+|---|---|---|
+creating an env | `env(parent = e1, a = 1)` | `new.env()`
+getting bindings of env | `env_names(e1)` | `names(e1)` or `ls()`
+current env | `current_env()` | `environment()`
+global env | `global_env()` | `globalenv()`
+empty env | `empty_env()` | `emptyenv()`
+function env | `fn_env(func1)` | `environment(func1)`
+getting parent of an env | `env_parent()` | `parent.env(e)`
+getting [all parents until empty]{.warning} | `env_parents(e1, last = empty_env())` |
+checking if a binding is present | `env_has(e1, "a")` |
+binding an env | In place: `env_bind(e1, a = 1)` | In place: `e1[["a"]] <- 1`
+unbinding | `env_unbind(e1, "a")` | 
+
+
+# Conditionals
+
 :::{.insight}
 Difference between `cat("Hi\n")` and `message("Hi")` is in the intended purpose.
 `cat` when the primary purpose of the function is to print whereas `message` when the developer chooses to print.
@@ -980,13 +1003,17 @@ warn2error <- function(expr) {
     expr
   )
 }
-warn2error(
-  {
-    x <- 2^4
-    warn("Hello")
-  }
+try(
+  warn2error(
+    {
+      x <- 2^4
+      warn("Hello")
+    }
+  )
 )
 ```
+# Functionals
+
 (@) Use [functionals]{.key} like `lapply()` to apply a function to a group of elements rather than using for loops.
 Functionals are functions that take a function as an input and return a vector.
 
@@ -1010,4 +1037,89 @@ l |> map_dbl("x")
 l |> map_dbl(list("y", 1), .default = NA)
 ```
 
+(@) Use the base `split` function to split dataframes based on values of a column. 
+Remember that [`paste0` is a vector function]{.warning}. It works individually to elements of a vector.
 
+```{r}
+tdir <- "testdir"
+
+if (dir.exists(tdir)) fs::dir_delete(tdir)
+
+dir.create(tdir)
+
+#file.path with add the operating system based path separator automatically
+cyls <- split(mtcars, mtcars$cyl)
+filepaths <- file.path(tdir, paste0("cyl-", names(cyls), ".csv"))
+walk2(cyls, filepaths, write.csv)
+
+dir(tdir)
+```
+[Q. How to pass different values for an argument that is not the first one, for. eg. different `trim` values for `mean`?]{.question}
+Use `pmap()`; define named list with name as `trim` in this case.
+
+```{r}
+trims <- list(trim = c(0.01, 0.1, 0.2, 0.3, 0.4))
+pmap_dbl(trims, mean, x = runif(1000), na.rm = TRUE)
+```
+[Q. How to run a model on a list of datasets and get the adjusted R-squared?]{.question}
+
+```{r}
+cyls <- split(mtcars, mtcars$cyl)
+cyls |> 
+  map(\(x) lm(mpg ~ wt, data = x) |> summary()) |>
+  map_dbl("adj.r.squared")
+```
+
+## Map Variants
+
+||List | Atomic | Same type | Nothing|
+|---|---|---|---|---|
+One argument | `map()` | `map_dbl()`... | `modify()` | `walk()`
+Two arguments | `map2()` | `map2_dbl()` ... | `modify2()` | `walk2()`
+one arg + index | `imap()` | `imap_dbl()` ... | `imodify()` | `iwalk()`
+N args | `pmap()` | `pmap_dbl()` ... | `pmodify()` | `pwalk()`
+
+
+[Q. Get the sd of all numeric columns of palmerpenguins::penguins. Also, get the number of levels of each factor column.]{.question}
+
+```{r}
+pgs <- palmerpenguins::penguins
+
+# sd of numeric columns
+isnumer <- pgs |> map_lgl(is.numeric)
+pgs[isnumer] |>
+  map_dbl(sd, na.rm = T)
+
+# length of factors
+isfac <- pgs |> map_lgl(is.factor)
+pgs[isfac] |>
+  map_dbl(\(x) levels(x) |> length())
+```
+
+[Q. Create bootstrap samples of `mtcars`, fit the model `mpg ~ disp` to each and get the adjusted R squared for each]{.question}
+
+
+```{r}
+bootstrap <- map(1:10, \(x) mtcars[sample(nrow(mtcars), replace = TRUE),])
+bootstrap |>
+  map(
+    \(x) lm(mpg ~ disp, data = x) |> summary()
+  ) |>
+  map_dbl("r.squared")
+```
+
+
+[Q. Why does `modify()` recycle the same value `nrow(mtcars)` times?]{.question}
+Because it is programmed to return the same structure, including the number of rows and columns. 
+```{r}
+mtcars |> modify(1) |> head(5)
+# Only one row in the data frame when using map
+mtcars |> map(1) |> as.data.frame()
+```
+
+(@) Use `reduce()` to repeatedly apply a function to the result and next value of the list. 
+```{r}
+map(1:4, ~ sample(1:10, 15, replace = T)) |>
+ reduce(intersect)
+
+```
