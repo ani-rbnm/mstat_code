@@ -1121,5 +1121,20 @@ mtcars |> map(1) |> as.data.frame()
 ```{r}
 map(1:4, ~ sample(1:10, 15, replace = T)) |>
  reduce(intersect)
+```
 
+
+```{r}
+tests <- array(1:24, dim = c(4,3,2))
+tests
+```
+
+
+```{r}
+z <- matrix(1:6, nrow = 2)
+colMeans(z)
+rowMeans(z)
+
+z |> apply(2, mean, na.rm = T)
+z |> apply(1, mean, na.rm = T)
 ```
