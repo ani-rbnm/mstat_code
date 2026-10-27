@@ -28,6 +28,8 @@ library(lobstr)
 library(tibble)
 library(purrr)
 library(rlang)
+library(ggplot2)
+library(scales)
 ```
 
 ```{r}
@@ -1123,18 +1125,298 @@ map(1:4, ~ sample(1:10, 15, replace = T)) |>
  reduce(intersect)
 ```
 
+[Q. How can we create a crosstab with `tapply()`? Also how to split a dataframe and remove the list entries with 0 rows?]{.question}
 
 ```{r}
-tests <- array(1:24, dim = c(4,3,2))
-tests
+d <- data.frame(gender=c("M","M","F","M","F","F"),
+ age=c(47,59,21,32,33,24),income=c(55000,88000,32450,76500,123000,45650))
+
+d$over25 <- ifelse(d$age > 25, 1, 0)
+d
+tapply(d$income, list(d$gender, d$over25), mean, na.rm = T)
+
+# Just demonstrating with Filter function. Another option is to use purrr::keep(). 
+# In practice, we would use drop = T in the split function itself.
+
+# split(d, list(d$gender, d$over25), drop = T)
+# purrr::keep(\(x) nrow(x) > 0L)
+split(d, list(d$gender, d$over25)) |>
+  Filter(\(x) nrow(x) > 0L, x = _)
+```
+
+# Function factories
+
+(@) Always remember to use `force(var)` for function factory defined as `f_factory(var)`. This is because 
+lazy evaluation feature might mean `var` is evaluated for the first time in the inner function.
+If `var` was [changed after the factory was invoked]{.key}, it could lead to head-scratcher of a bug.
+
+```{r}
+f_factory <- function(arg) {
+  # force(arg)
+  \() print(arg)
+}
+var <- 5
+f1 <- f_factory(var)
+# Lazy evaluation would mean that the var will have the value 10 which is its value when it is 
+# evaluated for the first time, which is inside the inner function
+# The "force" command will prevent this bug
+var <- 10
+f1()
+```
+
+[Q. How to use function factories in scale (label) construction in ggplot plots?]{.question}
+
+Functions like `comma_format()` , `scientific_format()` or `number_format(scale = 1e-3, suffix = "K")`
+which are passed to the `labels` argument of `scale_x_continuous()` are implemented as function factories.
+
+
+```{r}
+y <- c(12345, 123456, 1234567)
+df <- data.frame(y = y, x = 1)
+
+df |>
+  ggplot(aes(x = x, y = y)) +
+  geom_point() +
+  scale_x_continuous(labels = NULL, breaks = 1) + 
+  labs(x = NULL, y = NULL) +
+  scale_y_continuous(labels = number_format(scale = 1e-3, suffix = " K"))
+```
+
+[Q. How to use function factories to choose bin weight?]{.question}
+
+```{r}
+sdvals <- c(1,5,15)
+n <- 100
+# The first argument to rnorm is the total number of random numbers and the sd vector
+# would be recycled. So, if we need n observations of each sd val, we need to mention 3 * length.
+
+df <- data.frame(
+  x = rnorm(n * length(sdvals), sd = sdvals), sds = rep(sdvals, times = n)
+)
+
+# Binwidth function
+get_bw_sd <- function(type) {
+  fun <- switch(
+    type,
+    FD = nclass.FD,
+    Sturges = nclass.Sturges,
+    scott = nclass.scott,
+    stop("Invalid value", call. = F)
+  )
+  function(x) {
+    (max(x) - min(x)) / fun(x)
+  }
+
+}
+# plotting
+df |>
+  ggplot(aes(x = x)) +
+  # geom_histogram( binwidth = get_bw_sd(10)) +
+  geom_histogram( binwidth = get_bw_sd("FD")) +
+  facet_wrap(~ sds, scales = "free_x")
+
+```
+
+[Q. How to use function factories in Box-cox transformation?]{.question}
+
+
+```{r}
+
+get_boxcox <- function(lambda) {
+  force(lambda)
+  if (lambda == 0L) \(x) log(x)
+  else \(x) (x^lambda - 1) / lambda
+}
+
+data.frame(x = c(0,5)) |>
+  ggplot(aes(x = x)) +
+  lapply(
+    c(0.5, 1, 1.5),
+    \(lambda) stat_function(aes(color = lambda), fun = get_boxcox(lambda), size = 1)
+    ) +
+  scale_color_viridis_c(limits = c(0, 1.5)) +
+  labs(
+    color = "Lamdas"
+  ) +
+  theme_minimal()
+```
+
+[Q. Perform a parametric bootstrap with "mtcars" and "mpg ~ wt"]{.question}
+
+[Always make sure to remove heavy objects from the function factory invocation.]{.warning}
+
+```{r}
+get_bootstrap <- \(df, formula) {
+  # we don't need force here as we are using both the "df" and "formula" parameters
+  # force(df)
+  # force(formula)
+  mod <- lm(formula, data = df)
+  fit <- fitted(mod) |> unname()
+  res <- resid(mod) |> unname()
+
+  # The model is heavy, so best to remove it
+  rm(mod)
+
+  \() fit + sample(res)
+
+}
+boot_model <- get_bootstrap(mtcars, mpg ~ wt)
+lobstr::obj_size(boot_model)
+boot_model() |> head()
+boot_model() |> head()
+
+```
+
+[Q. Perform likelihood optimisation using function factories and poisson]{.question}
+
+We use `optimise(x, maximum = T)` function between a range of values
+
+
+```{r}
+lprob_poisson <- function(x) {
+  # x is evaluated in the function factory, so "force" is not required
+  n <- length(x)
+  sum_x <- sum(x)
+  lfact <- sum(lfactorial(x))
+
+  \(lambda) {
+    log(lambda) * sum_x - n * lambda - lfact
+  }
+}
+
+x1 <- c(41, 30, 31, 38, 29, 24, 30, 29, 31, 38)
+lpois <- lprob_poisson(x1)
+
+# optimising with a range of values from 0 to 100.
+optimise(lpois, c(0, 100), maximum = T)
+
+```
+# Function operators
+
+[Q. How to use the `purrr::safely()` function operator?]{.question}
+
+  - `safely()` function returns a safe version of a function. 
+  - When using it, result is a list with 2 elements - "result" and "error".
+
+```{r}
+x <- list(
+c(0.512, 0.165, 0.717),
+c(0.064, 0.781, 0.427),
+c(0.890, 0.785, 0.495),
+"oops"
+)
+
+safe_sum <- purrr::safely(sum)
+# safe sum will produce is of 4 items, with each item being a list of result
+# and error. transpose() function turns it "inside-out" with list of 2 - result 
+# and error. Each will be a list of 4.
+sums <- x |> map(safe_sum) |> transpose()
+ok <- map_lgl(sums$error, is.null)
+sums$result[ok] |> unlist()
+```
+
+# OOP
+
+```{r}
+# Used to inspect an object type
+library(sloop)
+```
+
+(@) [encapsulated OOP]{.key} vs [functional OOP]{.key}
+
+  - S3 is functional OOP.
+  - S4 is a rewrite of S3.
+  - RC or `R6` package objects are true encapsulated OOP with constraints and guarantees.
+
+[Q. While everything in R is an object, whats the difference between base Object and OO object]{.question}
+Presence of `class` attribute.
+
+```{r}
+sloop::otype(mtcars)
+is.object(mtcars)
+is.object(1:3)
+map_chr(list(1:3, mtcars), \(x) paste0(is.object(x), ", ", attr(x, "class")))
+```
+# S3
+
+(@) Method dispatch with the [generic function (generic)]{.question}.
+
+  - Generics use `UseMethod(<generic name>, optional args)`
+
+```{mermaid}
+flowchart LR
+S3["S3 (input)"] --> GF["Generic Fn: UseMethod(fnname)"]
+GF --> M["Method (generic.class)"]
+```
+
+[Q. Most often **methods** are identified by a dot in the name. How to confirm?]{.question}
+
+```{r}
+# This is a method
+sloop::ftype(t.test)
+# This is not
+sloop::ftype(t.data.frame)
+
+some_dt <- as.Date("2017-01-31") + sample(10, 5)
+sloop::otype(some_dt)
+sloop::ftype(mean)
+attr(some_dt, "class")
+
+# mean is a generic function and some_dt is an S3 object. So, when it is passed to mean
+# mean will call the mean.Date method
+mean(some_dt)
+# This can be confirmed by using s3_dispatch method.
+sloop::s3_dispatch(mean(some_dt))
+# this will call the default mean.default method as the object is not S3 anymore.
+mean(unclass(some_dt))
+```
+## Important `sloop` functions
+
+|Function | Purpose |
+|---|---|
+`s3_dispatch(mean(some_dt))` | which method of the object `some_dt` does the generic `mean` dispatch to?
+`ftype(mean)` | Is the `mean` function a generic?
+`s3_get_method(mean.Date)` | Print the body of the `mean.Date` method
+`s3_methods_generic("mean")` | list all classes that have methods defined for the generic `mean`
+`s3_methods_class("Date")` | list all generics for which methods defined in class `Date`
+
+```{r}
+s3_methods_generic("mean")
+```
+
+
+(@) Create S3 classes with `structure()` and check their inheritance with `inherits()`
+
+
+```{r}
+obj <- structure(list(), class = "my_class")
+obj |> inherits("my_class")
+obj |> inherits("your_class")
+```
+
+(@) Three components of a good S3 object
+
+```{mermaid}
+flowchart LR
+CR["Constr - new_myclass()"] --> VR["Validator - validate_myclass()"]
+VR --> HR["Helper - myclass()"]
+```
+[Q. what happens when an object for which there is no method in the generic is called?]{.question}
+
+```{r}
+# The `t` generic does not have a method for class "test"
+s3_methods_generic("t")
+# construct a "test" class. It would call the default t.detault method
+t(structure(1:10, class = "test")) |> sloop::s3_dispatch()
 ```
 
 
 ```{r}
-z <- matrix(1:6, nrow = 2)
-colMeans(z)
-rowMeans(z)
+df <- data.frame(a = 1:10, b = 11:20, c = 21:30)
+l <- list(list(a = 20, b = 30, c = 60), list(d = 100, e = 120, f = 140), list(e = 150))
 
-z |> apply(2, mean, na.rm = T)
-z |> apply(1, mean, na.rm = T)
+tryCatch(
+  error = function(cnd) {glue::glue("The error is: {conditionMessage(cnd)}")},
+  map_dbl(l, "a")
+)
 ```
