@@ -1409,14 +1409,47 @@ s3_methods_generic("t")
 # construct a "test" class. It would call the default t.detault method
 t(structure(1:10, class = "test")) |> sloop::s3_dispatch()
 ```
+# Metaprogramming - expressions
+
+(@) Code is an [Abstract syntax tree (AST)]{.key} An AST is created from the code. Everything in the tree
+is an [expression]{.key}.
+  
+  - `lobstr::ast()` displays the tree a code statement. The tree behaves like a `list`. 
+  - Orange blocks are [call objects]{.key}. Each call object has the function name as a list.
+  - function name is a [symbol]{.key}. The remaining elements could be [constant]{.warning} or [variable]{.warning}. 
+
+```{r}
+lobstr::ast(f1(f2(a,b), f3(1,f4(2))))
+```
+(@) `expr()` captures the code tree. If an expression is stored in a variable, we need to to use `enexpr()`.
+This is why the latter is used inside functions.
+
+```{r}
+x <- 20
+y <- expr(x + x^2)
+expr(x + x^2)
+expr(y)
+enexpr(y)
+```
+[Q. How to customize the `+` symbol for an expression?]{.question}
 
 
 ```{r}
-df <- data.frame(a = 1:10, b = 11:20, c = 21:30)
-l <- list(list(a = 20, b = 30, c = 60), list(d = 100, e = 120, f = 140), list(e = 150))
+name  <- "John"
+pr_greet <- function(greeting) {
+  # Two tasks here: 1) fname expression needs to be run with a custome definition 
+  # of +. 2) name variable needs to be resolved correctly. This is why we use caller_env() as the parent
+  # of the env we run the statement in
+  e <- env(
+    caller_env(),
+    `+` = function(x,y) paste(x, y)
+  )
+  # evaluate the greeting expression in the environment with custom +.
+  eval(enexpr(greeting), e)
+}
 
-tryCatch(
-  error = function(cnd) {glue::glue("The error is: {conditionMessage(cnd)}")},
-  map_dbl(l, "a")
-)
+pr_greet("Hello" + name)
+
 ```
+
+
