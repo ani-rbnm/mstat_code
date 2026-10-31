@@ -948,11 +948,13 @@ current env | `current_env()` | `environment()`
 global env | `global_env()` | `globalenv()`
 empty env | `empty_env()` | `emptyenv()`
 function env | `fn_env(func1)` | `environment(func1)`
+caller env | `caller_env()` | `parent.frame()` *Doesn't get frame unlike what the name suggests*
 getting parent of an env | `env_parent()` | `parent.env(e)`
 getting [all parents until empty]{.warning} | `env_parents(e1, last = empty_env())` |
 checking if a binding is present | `env_has(e1, "a")` |
 binding an env | In place: `env_bind(e1, a = 1)` | In place: `e1[["a"]] <- 1`
 unbinding | `env_unbind(e1, "a")` | 
+quosure env | `get_env(q)` | 
 
 
 # Conditionals
@@ -1433,7 +1435,6 @@ enexpr(y)
 ```
 [Q. How to customize the `+` symbol for an expression?]{.question}
 
-
 ```{r}
 name  <- "John"
 pr_greet <- function(greeting) {
@@ -1449,7 +1450,218 @@ pr_greet <- function(greeting) {
 }
 
 pr_greet("Hello" + name)
+```
+[Q. An easy way to check operator precedence?]{.question}
+
+Use `lobstr::ast()` to construct the AST.
+
+```{r}
+a <- 10
+b <- 20
+
+lobstr::ast(!a %in% b)
+```
+[Q. How to convert a string into a an expression.]{.question}
+
+```{r}
+outer_fn <- function(exp_txt){
+  x <- 10
+  function() {
+    e <- rlang::env(caller_env())
+    eval(parse_expr(exp_txt), e)
+  }
+}
+x <- 100
+
+outer_fn("x + 10")()
+```
+
+(@) Function declaration is also a function call.
+
+
+```{r}
+fe <- expr(function(x, y = 2) {print(y)})
+lobstr::ast(!!fe)
+map(fe |> as.list(), is_call)
+
+is_call(fe[[3]], "{")
+fe[[3]] |> as.list()
+```
+(@) [Quoting]{.key} is capturing an expression. But if the expression is saved in a variable, while the variable (say `x`)
+stores the captured expression, using `x` in a new expression uses the `x` literally as a symbol not what it stores.
+We need to [unquote using `!!x`]{.key} to using the underlying expression. The `!!` operator can only be used when the ultimate consumer is
+an `rlang` function like below. 
+
+
+```{r}
+time <- "Morning"
+# name <- "John"
+name <- expr(John)
+
+greet <- function(...) {
+  # vals <- rlang::ensyms(...)
+  vals <- rlang::enexprs(...)
+  print(vals)
+  paste(map(vals, as_string), collapse = " ")
+}
+
+greet(Good, !!time, !!name)
+
+```
+(@) Use `!!!`, called [unquote-splice]{.key} to unquote a a list of expressions.
+
+```{r}
+xs <- rlang::exprs(1, a, -b)
+# without names
+xs
+expr(f(!!!xs, y))
+# with names
+ys <- xs |> set_names(c("a", "b", "c"))
+ys
+expr(f(!!!ys, d = 29))
 
 ```
 
 
+```{r}
+func <- function(...) {
+  x <- list(...)
+  print(x)
+}
+func(x = 1, y = 2, z = 3)
+```
+
+(@) `typeof()` on quoted values
+
+|Quoted type | `typeof()` |
+|---|---|
+Symbol | `symbol`
+Call object | `language`
+Pairlist | `pairlist`
+Expression vector | `expression`
+
+
+```{r}
+typeof(expr(x))
+typeof(expr("x"))
+typeof(expr(f()))
+e <- expression(x <- 1, x <- x + 20, print(x))
+typeof(e)
+```
+
+
+## `rlang` quasiquotation vs Base R functions
+
+|Purpose |`rlang` | Base R|
+|---|---|---|
+Convert string to expr | `parse_expr("a <- 10")` | `parse(text = "a<-10")`
+Converting string to symbol | `sym("a")` |
+Converting symbol to string | `as_string(x)` | `as.character()`
+Quoting expression | `expr()`, `exprs()` | `quote(x + y)`, `alist(x <- 1, y <- 20)`
+Quoting withing a function | `enexpr(x + y)` | `substitute()`
+
+Quoting symbol within a function | `ensym()`, `ensyms()` | 
+Checking expr types | `is_syntactic_literal()`, `is_symbol()`, `is_call()`, `is_pairlist()`, `is_expression()` | `is.symbol()`, `is.call()`, `is.pairlist()`
+
+
+(@) A function that takes in a [quoted argument]{.warning} is called a [quoted function]{.key}. The best way to check if an argument is quoted or not
+is to run it.
+
+```{r}
+fn <- function(e) print(enexpr(e) |> as_string())
+fn(RANDOM)
+any(ls() == "RANDOM", na.rm = T)
+```
+(@) Unquoting
+  - Unquoting with `!!` or `!!!` [will only work]{.warning} for quoting functions that use `rlang`. 
+  - Can unquote function calls
+
+```{r}
+fn <- function() {expr(mean(x))}
+x <- 1:20
+e <- expr(!!fn())
+e
+eval(e)
+```
+  - Can replace function definitions 
+
+```{r}
+f <- expr(pkg::foo)
+expr((!!f)(x,y))
+```
+
+(@) [Tidy dots]{.key} :
+
+  - [Spatting or Argument unpacking]{.key} relates to the use of `!!!` in function invocation with a list. A function that supports 
+this functionality is said to support [tidy dots]{.warning}. `tidyverse` function support tidy dots.
+  - for passing an argument whose argument name is stored in a variable use the pattern `arg_var <- "x"` and `!!arg_var := 3` . 
+  - In the spatting pattern, The argument list [is not quoted with `exprs`]{.warning}.
+  - it is passed to `rlang::list2(...)`. The result can be used as a regular list.
+  - Therefore, for a function to make use of tidy dots, the input values must be passed to the `list2(...)` call.
+
+
+```{r}
+fn <- function(.x, ...) {
+  atb <- rlang::list2(...)
+  
+  # A roundabout way of doing it. We are calling call2 to construct a function call expression
+  # eval() is then required to run the function
+  # call2("structure", .x, !!!atb) |> eval()
+
+  attributes(.x) <- atb
+  .x
+}
+
+alst <- list(x = 1, y = 2)
+at_name <- "z"
+1:10 |> fn(w = 0, !!!alst, !!at_name := 45)
+```
+[Q. How to pass tibble column name from a variable during creation?]{.question}
+
+`tibble` is [tidy-dots-aware]{.warning}.
+
+```{r}
+val <- "x"
+tibble(!!val := 1:5, y = 11:15)
+```
+
+(@) Environment captured by `enquo()` within a function is the `caller_env()` not the `fn_env()`. We can get the 
+environment in a quosure object using `rlang::get_env()`
+
+
+```{r}
+x <- 10
+f_outer <- function() {
+  x <- 20
+  function(y) enquo(y)
+  # function() new_quosure(expr(x))
+}
+f <- f_outer()
+fn_env(f)
+quo_env <- f(x)
+get_env(quo_env)
+eval_tidy(quo_env)
+```
+
+(@) When the quosure is unquoted the expression is replaced, but when the expression is evaluated the environment stored in the 
+quosure is used to look for symbols.
+
+```{r}
+q1 <- new_quosure(expr(x), env(x = 1))
+
+# Here !!q1 replaces x but when evaluating the value of x in environment stored in 
+# q1 is used. In this case x = 1
+q2 <- new_quosure(expr(x + !!q1), env(x = 10))
+
+q3 <- new_quosure(expr(x + !!q2), env(x = 100))
+eval_tidy(q1)
+eval_tidy(q2)
+eval_tidy(q3)
+
+```
+
+
+```{r}
+enenv <- function(ex) get_env(enquo(ex))
+enenv(x + y)
+```
