@@ -30,6 +30,7 @@ library(purrr)
 library(rlang)
 library(ggplot2)
 library(scales)
+library(dplyr)
 ```
 
 ```{r}
@@ -1760,4 +1761,65 @@ g <- function(b) {
 }
 f(10)
 ```
+(@) Microbenchmarking using `bench::mark()` function
+```{r}
 
+x <- runif(1e15)
+bench::mark(
+  mean(x), mean.default(x), .Internal(mean(x))
+)[c("expression", "min", "median", "itr/sec", "n_gc")]
+
+```
+
+(@)`crossprod(x,y)`  means $X^T Y$ and `tcrossprod(x,y)` means $X Y^T$. 
+
+  - For two vectors x and y, `crossprod(x,y)[[1]]` is faster than `sum(x*w)`
+
+
+```{r}
+x <- runif(1000)
+w <- seq(1,1000, by = 1)
+bench::mark(
+  crossprod(x, w)[[1]],
+  sum(x * w)
+)
+
+```
+
+```{r}
+x <- rep(1, 3)
+y <- 1:3
+x
+# tcrossprod
+tcrossprod(x, y)
+crossprod(x, y)
+```
+
+(@) Use `bench::press` to test performance for a range of values
+
+
+```{r}
+rowsums <- bench::press(
+  p = seq(500, 5000, length.out = 10),
+  {
+    mat <- tcrossprod(rnorm(p), rnorm(p))
+    bench::mark(
+      mat |> rowSums(),
+      mat |> apply(1, sum)
+    )
+  }
+)
+```
+
+```{r}
+rowsums |> 
+  mutate(med_d = as.double(median)) |>
+  select(expression, p, min, median, med_d)
+```
+```{r}
+rowsums |>
+  ggplot(aes(x = p, y = as.numeric(median), color = as.character(expression))) +
+  geom_line() +
+  geom_point()
+
+```
