@@ -1586,7 +1586,8 @@ eval(e)
   - Can replace function definitions 
 
 ```{r}
-f <- expr(pkg::foo)
+fn <- function(x,y){}
+f <- expr(fn)
 expr((!!f)(x,y))
 ```
 
@@ -1660,8 +1661,20 @@ eval_tidy(q3)
 
 ```
 
+(@) [Data masking]{.key} Evaluating a quosure against a data frame in addition to the captured environment.
 
+The `transform2()` function pattern where new fields are added to a data frame
 ```{r}
-enenv <- function(ex) get_env(enquo(ex))
-enenv(x + y)
+# Defining the first parameter as .data since we do not want to use any common column names. Suppose, we named it x and
+# then used x in the field name. Then when we would pass a filed like x = 1:10 etc, 1:10 would be taken as the data
+# due to parameter matching rules
+transform2 <- function(.data, ...) {
+  fields <- enquos(...)
+  fnames <- names(fields)
+  for (i in seq_along(fields)) {
+    .data[[fnames[i]]] <- eval_tidy(fields[[i]], .data)
+  }
+  .data
+}
+transform2(data.frame(x = 1:5), y = x*2, z = y*3, x1 = 11:15)
 ```
