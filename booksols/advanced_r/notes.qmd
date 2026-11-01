@@ -1678,3 +1678,86 @@ transform2 <- function(.data, ...) {
 }
 transform2(data.frame(x = 1:5), y = x*2, z = y*3, x1 = 11:15)
 ```
+
+(@) Use the special `.data[[x]]` and `.env[[x]]` to differentiate between variable in the 
+data frame and the environment.
+
+
+```{r}
+with2 <- function(df, ex) {
+  eval_tidy(enquo(ex), df)
+}
+
+df <- data.frame(x = 1:5)
+x <- 8
+with2(df,.env[["x"]] * 3)
+with2(df,.data[["x"]] * 3)
+with2(df, .env[["x"]] * .data[["x"]])
+```
+
+(@) When a quoting function is called within another quoting function, the tidy argument 
+must be [quoted and unquoted]{.warning}.
+
+
+```{r}
+# Defining transform function
+transform3 <- function(.d, ...) {
+  cond <- enquos(...)
+  cnames <- names(cond)
+  for (i in seq_along(cond)) {
+    .d[[cnames[[i]]]] <- eval_tidy(cond[[i]], .d)
+  }
+  .d
+}
+# defining with3
+subset3 <- function(.d, cond) {
+  .d[eval_tidy(enquo(cond), .d), , drop = F]
+}
+
+# wrapper function
+# AT EVERY LEVEL, we need to quote and unquote
+fn <- function(df, scond, ...) {
+  scond_e <- enquo(scond)
+  tcond_e <- enquos(...)
+  df <- subset3(df, !!scond_e)
+  transform3(df, !!!tcond_e)
+}
+
+wcond <- expr(x %in% 2:5)
+tcond <- exprs(x = x * 3, y = y - 2)
+fn(data.frame(x = 1:10, y = 11:20), !!wcond, !!!tcond)
+```
+(@) Pattern: Passing an passing an expression to evaluate on the dataframe +
+using `!!` to use variable in the environment over that in the data frame.
+
+```{r}
+threshold <- function(df, ex, val) {
+  # var <- as_string(ensym(ex))
+  # this z is not considered while evaluating ex since the captured environment 
+  # for ex is the caller environment of the function which is the global environment
+  z <- 21
+  ex_pr <- enquo(ex)
+  subset3(df, !!ex_pr >= !!val)
+}
+df <- data.frame(x = 1:10, val = 21:30)
+z <- 2
+threshold(df, x + z , 8)
+```
+
+
+```{r}
+f <- function(a) g(a)
+h <- function(c) i(c)
+i <- function(d) {
+if (!is.numeric(d)) {
+stop("`d` must be numeric", call. = FALSE)
+}
+d + 10
+}
+g <- function(b) {
+  browser()
+  h(b)
+}
+f(10)
+```
+
