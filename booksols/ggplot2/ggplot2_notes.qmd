@@ -1,0 +1,34 @@
+---
+title: ggplot2, 3rd ed
+format: 
+  html:
+    css: styles.css
+    number-sections: true
+  pdf:
+    include-in-header:
+      text: |
+        \input{preamble.tex}
+---
+
+
+```{r}
+#| include: false
+knitr::opts_chunk$set(
+  results = "markup",
+  collapse = TRUE,
+  comment = ""
+)
+```
+
+```{r}
+#| include: false
+## library to inspect objects
+library(tibble)
+library(purrr)
+library(rlang)
+library(ggplot2)
+library(scales)
+library(dplyr)
+```
+
+
