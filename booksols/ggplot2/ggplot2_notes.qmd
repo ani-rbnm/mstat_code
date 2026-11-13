@@ -31,4 +31,24 @@ library(scales)
 library(dplyr)
 ```
 
+[Q. Difference between `geom_path()` and `geom_line()`]{.question} `geom_path` connects in the order the points appear.
+Both recognize `linetype`
+
+[Q. Difference between `geom_rect()` and `geom_tile()`?]{.question} `geom_rect()` has `xmin`, `ymin`, `xmax`, `ymax` whereas `geom_tile()` 
+measures coordinates from the center of the rectangle. It has `x`, `y`, `width`, `height`. `geom_raster()` is a [fast special case]{.warning} of `geom_tile()`
+
+(@) `geom_area()` is a good way to color area below the plot.
+
+
+```{r}
+df <- data.frame(
+  x = c(3 ,1, 5),
+  y = c(2,4,6),
+  label = c("a", "b", "c")
+)
+
+df |>
+  ggplot(aes(x, y, label = label)) +
+  geom_area(color = "gray", alpha = 0.7)
+```
 
