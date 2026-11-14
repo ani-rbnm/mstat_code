@@ -29,6 +29,7 @@ library(rlang)
 library(ggplot2)
 library(scales)
 library(dplyr)
+library(patchwork)
 ```
 
 [Q. Difference between `geom_path()` and `geom_line()`]{.question} `geom_path` connects in the order the points appear.
@@ -43,12 +44,72 @@ measures coordinates from the center of the rectangle. It has `x`, `y`, `width`,
 ```{r}
 df <- data.frame(
   x = c(3 ,1, 5),
-  y = c(2,4,6),
+  y = c(2,-4,6),
   label = c("a", "b", "c")
 )
 
 df |>
   ggplot(aes(x, y, label = label)) +
   geom_area(color = "gray", alpha = 0.7)
+
 ```
 
+[Q. How to group based on more than one column?]{.question} Use `aes(group = interaction(school_id, student_id))` 
+
+[Q. How to interpolate more values of y based on interpolated values of x?]{.question}
+
+```{r}
+df <- data.frame(x = 1:3, y = 11:13, color = c(1,3,5))
+
+xgrid <- with(df , seq(min(x), max(x), length.out = 10))
+xgrid
+
+approx(df$x, df$y, xout = xgrid)
+```
+
+(@) [Default `group` asthetics]{.key} `fill` or `color` aesthetic using a [discrete]{.warning} variable makes the variable a `group`
+aesthetic as well. So applying `aes(fill = discrete_val)` makes groups the data based on `discrete_val`. This is NOT true when
+using a continuous variable for the `fill` asthetic. 
+
+
+```{r}
+# drv is character therefore treated equivalently to factor.
+# Here, drv is also a group asthetic. So, for the finest grain grouping the values of fill aesthetic is the same. 
+# Hence, they have the same color.
+mpg |>
+  ggplot(aes(class, fill = drv)) +
+  geom_bar()
+
+# Here, the latest grouping is `class`. For each group in class, there are multiple fill colors, so ggplot ignores individual
+# color mappings altogether and gives a default gray color to all.
+mpg |>
+  ggplot(aes(class, fill = hwy )) + 
+  geom_bar()
+
+# Need to explicitly mention group aesthetic for continuous fill aesthetics.
+mpg |>
+  ggplot(aes(class, fill = hwy, group = hwy)) +
+  geom_bar()
+
+```
+
+(@) Different methods to display **uncertainty**.
+
+
+```{r}
+df <- data.frame(x = 1:3, y = c(18, 11, 16), se = c(1.2, 0.5, 1.0))
+cb <- df |> ggplot(aes(x, y, ymin = y - se, ymax = y + se)) + geom_crossbar()
+lr <- df |> ggplot(aes(x, y, ymin = y - se, ymax = y + se)) + geom_linerange() + geom_point()
+sm <- df |> ggplot(aes(x, y, ymin = y - se, ymax = y + se)) + geom_smooth(stat = "identity")
+rb <- df |> ggplot(aes(x, y, ymin = y - se, ymax = y + se)) + geom_ribbon()
+
+cb + lr + sm + rb
+
+```
+
+(@) `bind_2d()` to show distribution 
+
+
+```{r}
+df <- data.frame(x = rnorm(2000), y =  rnorm(2000))
+```
