@@ -31,6 +31,8 @@ library(scales)
 library(dplyr)
 library(patchwork)
 library(ggtext)
+library(gghighlight)
+library(patchwork)
 ```
 
 [Q. Difference between `geom_path()` and `geom_line()`]{.question} `geom_path` connects in the order the points appear.
@@ -134,7 +136,7 @@ diamonds |>
 df <- data.frame(x = seq(-2, 2, by = 0.01))
 df |>
   ggplot(aes(x)) +
-  geom_function(aes(colour = "first"), fun = \(x) x^3) +
+  stat_function(aes(colour = "first"), geom = "point", fun = \(x) x^3) +
   ylab(label = quote(f(x) == x^3)) +
   scale_colour_manual(values = c("first" = "red")) +
   theme_minimal()
@@ -150,4 +152,70 @@ data.frame(x = 1:3, y = 1:3, family = c("sans", "serif", "mono"), fontface = c("
   geom_text(aes(label = family, family = family, fontface = fontface)) +
   xlab(label = "Axis title with *italic* and **bold**") +
   theme(axis.title.x = ggtext::element_markdown())
+```
+
+(@) Coloring the background with `geom_rect(aes(fill=))`
+
+
+```{r}
+presidential <- subset(presidential, start > economics$date[1])
+
+economics |>
+  ggplot() +
+  geom_vline(data = presidential, aes(xintercept = start), colour = "grey50", alpha = 0.5) +
+  geom_rect(data = presidential, aes(xmin = start, xmax = end, fill = party), ymin = -Inf, ymax = Inf, alpha = 0.4) +
+  geom_text(data = presidential, aes(x = start, label = name), y = 2500, nudge_x = 50, hjust = 0) +
+  geom_line(aes(date, unemploy)) +
+  scale_fill_manual(values = c("Republican" = "red", "Democratic" = "blue")) +
+  theme_minimal()
+
+```
+(@) Use `annotate(geom = "text")` or with `geom = "point"` to add individual annotations.
+
+```{r}
+mpg |>
+  ggplot(aes(displ, hwy)) +
+  geom_point(
+    data = filter(mpg, manufacturer == "subaru"),
+    colour = "orange",
+    size = 3
+  ) +
+  geom_point() +
+  annotate( geom = "point", x = 5.5, y = 40, colour = "orange", size = 3) +
+  annotate( geom = "point", x = 5.5, y = 40) +
+  annotate( geom = "text", x = 5.6, y = 40, label = "Subaru", hjust = "left")
+```
+
+(@) Using `gghighlight::gghighlight()` to highlight important parts of the plot
+
+
+```{r}
+mpg |>
+  ggplot(aes(displ, hwy, colour = factor(cyl)))  +
+  geom_point() +
+  gghighlight::gghighlight() +
+  facet_wrap(vars(cyl))
+```
+
+# Using `patchwork`
+
+(@) **Key rules**
+  - Use `plot_layout(ncol = 2)`  to explicitly set the alignment
+  - `/` for rows and `|` for columns
+  - use `plot_layout(design = strlayout)` for complicated layouts 
+  - Can collect guides using `guides = "collect"`
+
+```{r}
+p1 <- mpg |> ggplot() + geom_point(aes(displ, hwy))
+p2 <- mpg |> ggplot() + geom_bar(aes(year, fill = drv), position = "dodge")
+p3 <- mpg |> ggplot() + geom_density(aes(hwy, fill = drv), color = NA) + facet_grid(rows = vars(drv))
+p4 <- mpg |> ggplot() + 
+  stat_summary(aes(x = drv, y = hwy, fill = drv), fun.data = mean_se, geom = "col")
+
+p3 + p1 + p2 + plot_layout(ncol = 2)
+p3 | (p2 / (p1 | p4))
+
+# collecting guides and placing them into the 4th slot
+p1 + p2 + p3 + guide_area() + plot_layout(ncol = 2, guides = "collect") 
+
 ```
