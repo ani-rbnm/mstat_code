@@ -30,6 +30,7 @@ library(ggplot2)
 library(scales)
 library(dplyr)
 library(patchwork)
+library(ggtext)
 ```
 
 [Q. Difference between `geom_path()` and `geom_line()`]{.question} `geom_path` connects in the order the points appear.
@@ -107,9 +108,46 @@ cb + lr + sm + rb
 
 ```
 
-(@) `bind_2d()` to show distribution 
-
+(@) `bind_2d()` to show distribution . Use `fill = after_stat(density)` 
+to use density instead of count.
 
 ```{r}
 df <- data.frame(x = rnorm(2000), y =  rnorm(2000))
+
+df |>
+  ggplot(aes(x, y)) +
+  geom_bin2d(aes(fill = after_stat(density)))
+```
+
+[Q. How to use some other summary function instead of the default count in `geom_bar`?]{.question}
+
+```{r}
+diamonds |>
+  ggplot(aes(color, price)) +
+  geom_bar(stat = "summary_bin", fun = mean)
+```
+
+(@) Use `quote()` to include formulas in axis titles
+
+
+```{r}
+df <- data.frame(x = seq(-2, 2, by = 0.01))
+df |>
+  ggplot(aes(x)) +
+  geom_function(aes(colour = "first"), fun = \(x) x^3) +
+  ylab(label = quote(f(x) == x^3)) +
+  scale_colour_manual(values = c("first" = "red")) +
+  theme_minimal()
+
+```
+
+(@) Use the `ggtext::element_markdown()` type for the text themes to include bold or italic type.
+
+
+```{r}
+data.frame(x = 1:3, y = 1:3, family = c("sans", "serif", "mono"), fontface = c("plain", "bold", "italic")) |>
+  ggplot(aes(x,y)) +
+  geom_text(aes(label = family, family = family, fontface = fontface)) +
+  xlab(label = "Axis title with *italic* and **bold**") +
+  theme(axis.title.x = ggtext::element_markdown())
 ```
