@@ -219,3 +219,62 @@ p3 | (p2 / (p1 | p4))
 p1 + p2 + p3 + guide_area() + plot_layout(ncol = 2, guides = "collect") 
 
 ```
+
+# Scales
+
+(@) [Position scales]{.key} managed by `scale_x_continuous` .
+
+  - set limits using `scale_x_continuous(limits = c(0, NA))`. Use `NA` for default limit on one side. 
+  - If limits for both axes need to be set, a [shortcut]{.warning} is `lims(x = c(10,20), y = (0, NA))`. 
+  - Can use `xlim()` and `ylim()` for a single position scale.
+
+[Q. Difference between `coord_cartesian(ylim = c(10, 35))` and `lims(y = c(10, 35))`?]{.question} `coord_cartesian` **zooms** whereas `lims` sets the values
+outside the set limits to `NA`.
+
+
+```{r}
+base <- mpg |>
+  ggplot(aes(drv, hwy)) +
+  geom_hline(yintercept = 28, colour = "red") +
+  geom_boxplot()+
+  theme_minimal()
+
+# lims here incorrectly pushes the median down by setting some of the outliers to 0.
+base | (base + coord_cartesian(ylim = c(10,35))) | (base + lims(y = c(10,35)))
+```
+
+(@) Axis and legend [tick marks]{.warning} are [scale breaks]{.key}. 
+
+  -  Set using `scale_x_continuous(breaks = NULL)` or `breaks = scales::breaks_width(800, offset = 200)`.
+  - The above example creates ticks with equal spaces of 800 but starting with 1000.
+
+```{r}
+toy <- data.frame(
+  const = 1, up = 1:4, txt = letters[1:4],  big = (1:4)* 1000, log = c(2, 5, 10, 2000)
+)
+
+toy |>
+  ggplot(aes(big, const)) + 
+  geom_point() + 
+  # No ticks on the y axis
+  scale_y_continuous(breaks = NULL) +
+  # minor grid lines are added automatically
+  scale_x_continuous(breaks = scales::breaks_width(800, offset = 200))
+```
+(@) Handy way to create matrix with combinations
+```{r}
+1:10 %o% 10 ^ (0:3)
+```
+
+(@) Create [minor breaks]{.key} with `minor_break` argument. This is handy when the log scale is involved.
+
+```{r}
+mb <- 1:10 %o% 10 ^ (0:3) |> as.numeric() |> unique()
+toy |>
+  ggplot(aes(log, const)) +
+  geom_point() +
+  scale_y_continuous(breaks = NULL) +
+  scale_x_log10(minor_breaks = mb)
+```
+
+
