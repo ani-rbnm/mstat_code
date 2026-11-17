@@ -274,7 +274,69 @@ toy |>
   ggplot(aes(log, const)) +
   geom_point() +
   scale_y_continuous(breaks = NULL) +
-  scale_x_log10(minor_breaks = mb)
+  # scale_x_log10(minor_breaks = mb)
+# The below is equivalent to scale_x_log10 for which the trans = "log" value is preset
+  scale_x_continuous(trans = "log10", minor_breaks = mb)
+```
+(@) Every shortcut position scale such as `scale_x_log10` has a corresponding `trans` values to be set in `scale_x_continuous`
+
+
+```{r}
+diamonds |>
+  ggplot(aes(price, carat)) +
+  geom_bin2d() +
+  scale_x_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log10")
+```
+
+(@) Use the special `date_breaks` and `date_labels` for `scale_x_date`. 
+  - Use the original `breaks` and `labels` parameters if further customization is required.
+
+```{r}
+date_base <- economics |>
+  ggplot(aes(date, psavert)) +
+  geom_line(na.rm = TRUE) + labs(x = NULL, y = NULL)
+
+(date_base + scale_x_date(date_breaks = "5 years", date_labels = "%y")) |
+# This is the same as using date_breaks and date_labels
+(date_base + scale_x_date(breaks = scales::breaks_width("5 years"), labels = scales::label_date("%y")))
+```
+
+(@) Use `guides()` to align labels
+
+
+```{r}
+mpg |>
+  ggplot(aes(manufacturer, hwy)) +
+  geom_boxplot() +
+  guides(x = guide_axis(angle = 45))
+```
+(@) Specify a colour scale using `scale_fill_viridis_c()`
+
+```{r}
+dist <- faithfuld |>
+  ggplot(aes(eruptions, waiting)) +
+  geom_raster(aes(fill = density)) +
+  scale_x_continuous(name = NULL, expand = 0) +
+  scale_y_continuous(name = NULL, expand = 0) +
+  theme(legend.position = "none")
+
+dist | dist + scale_fill_viridis_c() | dist + scale_fill_viridis_c(option = "magma")
+```
+
+(@) use `na.value = "yellow"` to set what happens for `NA` values in the column used to fill color
+
+
+```{r}
+df <- data.frame(x = 1, y = 1:5, z = c(1,2,3,NA, 5))
+first <- df |> 
+  ggplot(aes(x, y, fill = z)) +
+  geom_tile() +
+  scale_x_continuous(expand = 0, labels = NULL) +
+  scale_y_continuous(expand = 0) +
+  theme(legend.position = "none")
+
+(first | first + scale_fill_continuous(na.value = "yellow") | first + scale_fill_continuous(na.value = NA)) & theme_minimal()
 ```
 
 
