@@ -339,4 +339,66 @@ first <- df |>
 (first | first + scale_fill_continuous(na.value = "yellow") | first + scale_fill_continuous(na.value = NA)) & theme_minimal()
 ```
 
+(@) Use the `guide_colourbar` to customize the [continuous]{.warning} colour legend and `guide_legend()` to customize [discrete]{.warning} legend.
+
+
+```{r}
+# hwy is a continuous value so the legend is managed using `guide_colourbar`
+base <- mpg |>
+  ggplot(aes(cyl, displ, colour = hwy)) +
+  geom_point(size = 2) +
+  theme_minimal()
+
+base + guides(colour = guide_colourbar(reverse = TRUE, barwidth = unit(6, "cm"), direction = "horizontal")) +
+  theme(legend.position = "bottom")
+```
+
+
+```{r}
+# factor(cyl) is discrete so the legend is managed by `guide_legend`
+base <- mpg |>
+  ggplot(aes(drv, fill = factor(cyl))) + 
+  geom_bar()
+
+base + guides(fill = guide_legend(reverse = T, ncol = 2, byrow = T))
+
+```
+
+(@) For [discrete]{.warning} scales, `scale_colour_brewer` is a good option. The corresponding continuous scale is `scale_color_distiller`. 
+Use `pallette = "Set1"` for points, and `pallette = "Set3"` for points.
+
+```{r}
+RColorBrewer::display.brewer.all()
+```
+
+```{r}
+df <- data.frame(x = letters[1:4], y = c(3,4,1,2)) 
+bars <- df |>
+  ggplot(aes(x, y, fill = x)) +
+  geom_bar(stat = "identity") +
+  labs(x = NULL, y = NULL)
+
+df.pt <- data.frame(x = 1:3 + runif(30), y = runif(30), z = letters[1:3])
+pts <- df.pt |>
+  ggplot(aes(x, y, colour = z)) +
+  geom_point(size = 2) +
+  labs(x = NULL, y = NULL)
+
+(bars + scale_fill_brewer(palette = "Pastel1") | pts + scale_colour_brewer(palette = "Set1")) & (theme_minimal() + theme(legend.position = "none") )
+```
+
+(@) Placing legend within the plot
+
+
+```{r}
+base <- toy |>
+  ggplot(aes(up, up, colour = txt)) +
+  geom_point(size = 3)
+
+base + theme(legend.position = c(0,1), legend.justification = c(0,1)) | 
+  base + theme(legend.position = c(0.5, 0.5), legend.justification = c(0.5, 0.5)) |
+  base + theme(legend.position = c(1,0), legend.justification = c(1,0))
+
+```
+
 
