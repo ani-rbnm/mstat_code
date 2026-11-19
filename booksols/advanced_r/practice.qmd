@@ -1,0 +1,20 @@
+---
+title: Practice adv R
+format: 
+  html:
+    css: styles.css
+    number-sections: true
+  pdf:
+    include-in-header:
+      text: |
+        \input{preamble.tex}
+---
+
+* preferred way to change many columns like when we subtract every column by their median
+
+
+```{r}
+df <- data.frame(matrix(runif(5 * 10), ncol = 5))
+med <- vapply(df, median, numeric(1))
+df[] <- Map(\(x,m) x - m, df, med)
+```

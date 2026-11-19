@@ -1764,7 +1764,7 @@ f(10)
 (@) Microbenchmarking using `bench::mark()` function
 ```{r}
 
-x <- runif(1e15)
+x <- runif(1e6)
 bench::mark(
   mean(x), mean.default(x), .Internal(mean(x))
 )[c("expression", "min", "median", "itr/sec", "n_gc")]
