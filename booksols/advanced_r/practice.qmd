@@ -14,7 +14,120 @@ format:
 
 
 ```{r}
+library(tibble)
+```
+```{r}
 df <- data.frame(matrix(runif(5 * 10), ncol = 5))
 med <- vapply(df, median, numeric(1))
 df[] <- Map(\(x,m) x - m, df, med)
 ```
+
+
+```{r}
+m <- matrix(1:20, nrow = 5)
+m
+length(m)
+is.null(dim(m))
+is.null(attr(1:20, "dim"))
+is.null(attr(m, "dim"))
+```
+
+
+```{r}
+f <- factor(c("a", "b", "c"), levels = c("b", "c", "a"))
+f <- f |> relevel(ref = "c")
+f
+```
+
+* data.matrix converts strings into factors and returns the internal value
+
+```{r}
+df <- data.frame(
+x = 1:3,
+  y = c("21", "41", "11")
+)
+df |> data.matrix()
+
+```
+
+* getting diagonal of a matrix
+
+
+```{r}
+df <- data.frame(x = 1:5, y = 11:15) |> as.matrix()
+df[row(df) == col(df)]
+diag(df)
+
+no_diags <- min(nrow(df), ncol(df))
+df[
+matrix(
+  rep(
+    seq_len(no_diags), each = 2
+  ), ncol = 2, byrow = T
+)
+]
+
+```
+
+* lookup logic using match
+
+```{r}
+grade_tab <- data.frame(
+  grade = 1:3,
+  desc = c("Poor", "Good", "Excellent"),
+  fail = c("T", "F", "F")
+)
+grades <- c(1,2,1,1,3,1)
+
+results <- grade_tab[match(grades, grade_tab$grade), ]
+results[sample(nrow(results)),]
+results[sample(nrow(results), 7, replace = T),]
+
+```
+
+
+```{r}
+df <- data.frame(x = c(1,2,3,11,1, 12), y = letters[1:6] )
+df[df$x < 9,]
+Filter(\(x) x < 9, df$x)
+df$x |> sort(decreasing = T)
+```
+* Get count of non-primitive functions with 0 arguments in the base package
+
+
+```{r}
+funs <- mget(ls("package:base", all = T), inherits = T) |>
+  Filter(f = is.function )
+
+n_args <- funs |>
+  Filter(f = \(x) !is.primitive(x)) |>
+  lapply(formals) |>
+  vapply(length, FUN.VALUE = numeric(1))
+
+(n_args == 0) |> sum()
+```
+
+```{r}
+func <- function(x) x 
+
+e <- rlang::env()
+rlang::env_bind(e, f = func)
+names(e)
+e
+rlang::fn_env(func) |> identical(environment(func))
+
+```
+
+
+```{r}
+ffac <- function() {
+  function() {
+    print(parent.frame())
+    print(rlang::caller_env() |> identical(parent.frame()))
+  }
+}
+
+ffac()()
+
+```
+
